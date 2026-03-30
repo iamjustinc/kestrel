@@ -1,189 +1,237 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  Upload, 
-  FileText, 
-  Link as LinkIcon, 
+import {
+  Upload,
+  FileText,
+  Link as LinkIcon,
   Sparkles,
   ArrowRight,
   X,
   CheckCircle2,
   Clock,
   Target,
-  ChevronDown
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  File
 } from "lucide-react"
-import Link from "next/link"
 
 const analysisSteps = [
-  { text: "Parsing job description...", delay: 0 },
-  { text: "Extracting required skills...", delay: 800 },
-  { text: "Analyzing experience requirements...", delay: 1600 },
-  { text: "Processing your resume...", delay: 2400 },
-  { text: "Mapping skills to requirements...", delay: 3200 },
-  { text: "Calculating readiness score...", delay: 4000 },
-  { text: "Generating skill gap analysis...", delay: 4800 },
-  { text: "Building personalized roadmap...", delay: 5600 },
-  { text: "Finalizing recommendations...", delay: 6400 },
+  "Parsing job description",
+  "Extracting required skills",
+  "Processing your resume",
+  "Mapping skills to requirements",
+  "Calculating readiness score",
+  "Generating recommendations",
+  "Finalizing analysis",
 ]
 
-const confidenceIndicators = [
-  { skill: "Technical Skills", confidence: 0 },
-  { skill: "Experience Match", confidence: 0 },
-  { skill: "Leadership", confidence: 0 },
-  { skill: "Culture Fit", confidence: 0 },
-]
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "txt"]
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 export default function AnalysisPage() {
+  const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
   const [jobDescription, setJobDescription] = useState("")
   const [jobUrl, setJobUrl] = useState("")
-  const [resumeUploaded, setResumeUploaded] = useState(false)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
-  const [confidences, setConfidences] = useState(confidenceIndicators)
+  const [urlStatus, setUrlStatus] = useState<"idle" | "saved" | "invalid">("idle")
+
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [resumeText, setResumeText] = useState("")
+  const [showResumeText, setShowResumeText] = useState(false)
+  const [useSavedProfile, setUseSavedProfile] = useState(false)
+  const [resumeError, setResumeError] = useState("")
+  const [isDragging, setIsDragging] = useState(false)
+
   const [targetRole, setTargetRole] = useState("")
   const [timeline, setTimeline] = useState("")
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [notes, setNotes] = useState("")
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+
+  const jobWordCount = jobDescription.trim().split(/\s+/).filter(Boolean).length
+  const resumeWordCount = resumeText.trim().split(/\s+/).filter(Boolean).length
+
+  const hasResumeSource =
+    Boolean(resumeFile) || resumeText.trim().length > 0 || useSavedProfile
+
+  const canAnalyze = jobDescription.trim().length > 0 && hasResumeSource
+
+  const validateAndSetFile = (file: File) => {
+    const extension = file.name.split(".").pop()?.toLowerCase() || ""
+
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      setResumeError("Please upload a PDF, DOC, DOCX, or TXT file.")
+      return
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setResumeError("Please upload a file smaller than 5MB.")
+      return
+    }
+
+    setResumeError("")
+    setResumeFile(file)
+    setResumeText("")
+    setShowResumeText(false)
+    setUseSavedProfile(false)
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) validateAndSetFile(file)
+  }
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragging(false)
+
+    const file = event.dataTransfer.files?.[0]
+    if (file) validateAndSetFile(file)
+  }
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleFetchUrl = () => {
+    if (!jobUrl.trim()) {
+      setUrlStatus("invalid")
+      return
+    }
+
+    try {
+      new URL(jobUrl)
+      setUrlStatus("saved")
+    } catch {
+      setUrlStatus("invalid")
+    }
+  }
+
+  const handleResumeTextChange = (value: string) => {
+    setResumeError("")
+    setResumeText(value)
+
+    if (value.trim().length > 0) {
+      setResumeFile(null)
+      setUseSavedProfile(false)
+      setShowResumeText(true)
+    }
+  }
+
+  const handleToggleSavedProfile = () => {
+    const nextValue = !useSavedProfile
+    setUseSavedProfile(nextValue)
+
+    if (nextValue) {
+      setResumeFile(null)
+      setResumeText("")
+      setShowResumeText(false)
+      setResumeError("")
+    }
+  }
+
   const handleAnalyze = useCallback(() => {
+    if (!canAnalyze) return
     setIsAnalyzing(true)
     setCurrentStep(0)
-    setConfidences(confidenceIndicators.map(c => ({ ...c, confidence: 0 })))
-  }, [])
+  }, [canAnalyze])
 
   useEffect(() => {
     if (!isAnalyzing) return
 
-    const stepInterval = setInterval(() => {
-      setCurrentStep(prev => {
-        if (prev >= analysisSteps.length - 1) {
-          clearInterval(stepInterval)
-          // Navigate after a brief delay
-          setTimeout(() => {
-            window.location.href = "/dashboard/analysis/results"
-          }, 1000)
-          return prev
-        }
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev >= analysisSteps.length - 1) return prev
         return prev + 1
       })
-    }, 800)
+    }, 850)
 
-    // Animate confidence indicators
-    const confidenceInterval = setInterval(() => {
-      setConfidences(prev => prev.map(c => ({
-        ...c,
-        confidence: Math.min(c.confidence + Math.random() * 15, 95)
-      })))
-    }, 400)
+    const redirectTimeout = setTimeout(() => {
+      router.push("/dashboard/analysis/results")
+    }, analysisSteps.length * 850 + 900)
 
     return () => {
-      clearInterval(stepInterval)
-      clearInterval(confidenceInterval)
+      clearInterval(interval)
+      clearTimeout(redirectTimeout)
     }
-  }, [isAnalyzing])
+  }, [isAnalyzing, router])
 
   if (isAnalyzing) {
     return (
-      <div className="max-w-3xl mx-auto pb-20 lg:pb-0">
-        {/* AI Scanning Animation */}
-        <div className="min-h-[70vh] flex flex-col items-center justify-center">
-          {/* Glowing orb */}
-          <div className="relative mb-12">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#4FA7A7] to-[#E87BF1] blur-3xl opacity-30 animate-pulse" 
-              style={{ width: 200, height: 200, marginLeft: -100, marginTop: -100 }} 
+      <div className="mx-auto max-w-3xl pb-20 lg:pb-0">
+        <div className="flex min-h-[70vh] flex-col items-center justify-center">
+          <div className="relative mb-10">
+            <div
+              className="absolute inset-0 rounded-full bg-gradient-to-br from-[#4FA7A7] to-[#E87BF1] blur-3xl opacity-25 animate-pulse"
+              style={{ width: 180, height: 180, marginLeft: -90, marginTop: -90 }}
             />
-            <div className="relative h-32 w-32 rounded-full bg-gradient-to-br from-[#4FA7A7] via-[#7ED7F7] to-[#E87BF1] flex items-center justify-center shadow-2xl shadow-[#4FA7A7]/30">
-              <Sparkles className="h-12 w-12 text-white animate-pulse" />
-            </div>
-            {/* Orbiting dots */}
-            <div className="absolute inset-0 animate-spin" style={{ animationDuration: "3s" }}>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 h-3 w-3 rounded-full bg-[#F7C7D4]" />
-            </div>
-            <div className="absolute inset-0 animate-spin" style={{ animationDuration: "4s", animationDirection: "reverse" }}>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-4 h-2 w-2 rounded-full bg-[#C9B6E4]" />
+            <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-[#4FA7A7] via-[#7ED7F7] to-[#E87BF1] shadow-2xl shadow-[#4FA7A7]/30">
+              <Sparkles className="h-10 w-10 text-white animate-pulse" />
             </div>
           </div>
 
-          {/* Status text with typing effect */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-semibold text-[#3C4166] mb-3">
+          <div className="mb-8 text-center">
+            <h2 className="mb-3 text-2xl font-semibold text-[#3C4166]">
               Analyzing with Kestrel
             </h2>
-            <div className="h-6 flex items-center justify-center">
-              <p className="text-[#6B6F8E] flex items-center gap-2">
-                {analysisSteps[currentStep]?.text}
-                <span className="inline-flex">
-                  <span className="animate-bounce" style={{ animationDelay: "0ms" }}>.</span>
-                  <span className="animate-bounce" style={{ animationDelay: "150ms" }}>.</span>
-                  <span className="animate-bounce" style={{ animationDelay: "300ms" }}>.</span>
-                </span>
-              </p>
-            </div>
+            <p className="flex items-center justify-center gap-2 text-[#6B6F8E]">
+              {analysisSteps[currentStep]}
+              <span className="inline-flex">
+                <span className="animate-bounce" style={{ animationDelay: "0ms" }}>.</span>
+                <span className="animate-bounce" style={{ animationDelay: "150ms" }}>.</span>
+                <span className="animate-bounce" style={{ animationDelay: "300ms" }}>.</span>
+              </span>
+            </p>
           </div>
 
-          {/* Progress steps */}
-          <div className="w-full max-w-md mb-8">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-7 w-full max-w-md">
+            <div className="mb-2 flex items-center justify-between">
               <span className="text-xs text-[#6B6F8E]">Progress</span>
-              <span className="text-xs text-[#4FA7A7] font-medium">
+              <span className="text-xs font-medium text-[#4FA7A7]">
                 {Math.round(((currentStep + 1) / analysisSteps.length) * 100)}%
               </span>
             </div>
-            <div className="h-2 rounded-full bg-[#3C4166]/10 overflow-hidden">
-              <div 
+            <div className="h-2 overflow-hidden rounded-full bg-[#3C4166]/10">
+              <div
                 className="h-full rounded-full bg-gradient-to-r from-[#4FA7A7] to-[#E87BF1] transition-all duration-500"
                 style={{ width: `${((currentStep + 1) / analysisSteps.length) * 100}%` }}
               />
             </div>
           </div>
 
-          {/* Confidence indicators */}
-          <div className="w-full max-w-md grid grid-cols-2 gap-3">
-            {confidences.map((item) => (
-              <div 
-                key={item.skill}
-                className="p-4 rounded-xl bg-white/70 backdrop-blur-sm border border-[#3C4166]/10"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-[#6B6F8E]">{item.skill}</span>
-                  <span className={`text-xs font-medium ${
-                    item.confidence > 70 ? "text-[#4FA7A7]" : 
-                    item.confidence > 40 ? "text-[#E87BF1]" : "text-[#6B6F8E]"
-                  }`}>
-                    {Math.round(item.confidence)}%
+          <div className="w-full max-w-md rounded-xl border border-[#3C4166]/10 bg-white/70 p-4 backdrop-blur-sm">
+            <div className="space-y-2 font-mono text-xs text-[#6B6F8E]">
+              {analysisSteps.slice(0, currentStep + 1).map((step, index) => (
+                <div key={step} className="flex items-center gap-2">
+                  <CheckCircle2
+                    className={`h-3 w-3 ${
+                      index === currentStep ? "text-[#E87BF1]" : "text-[#4FA7A7]"
+                    }`}
+                  />
+                  <span className={index === currentStep ? "text-[#3C4166]" : ""}>
+                    {step}...
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full bg-[#3C4166]/10 overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      item.confidence > 70 ? "bg-[#4FA7A7]" : 
-                      item.confidence > 40 ? "bg-[#E87BF1]" : "bg-[#C9B6E4]"
-                    }`}
-                    style={{ width: `${item.confidence}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Live analysis log */}
-          <div className="w-full max-w-md mt-8 p-4 rounded-xl bg-[#3C4166]/5 border border-[#3C4166]/10">
-            <div className="font-mono text-xs space-y-1.5 text-[#6B6F8E] max-h-32 overflow-hidden">
-              {analysisSteps.slice(0, currentStep + 1).map((step, i) => (
-                <div key={i} className="flex items-center gap-2 animate-fade-in">
-                  <CheckCircle2 className={`h-3 w-3 ${i === currentStep ? "text-[#E87BF1]" : "text-[#4FA7A7]"}`} />
-                  <span className={i === currentStep ? "text-[#3C4166]" : ""}>{step.text}</span>
-                </div>
               ))}
-              {currentStep < analysisSteps.length - 1 && (
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full border-2 border-[#E87BF1] border-t-transparent animate-spin" />
-                  <span className="text-[#E87BF1]">Processing...</span>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -192,24 +240,21 @@ export default function AnalysisPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 lg:pb-0">
-      {/* Header */}
+    <div className="mx-auto max-w-6xl pb-24 lg:pb-8">
       <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold text-[#3C4166]">
+        <h1 className="text-2xl font-semibold text-[#3C4166] sm:text-3xl">
           New Analysis
         </h1>
         <p className="mt-1 text-[#6B6F8E]">
-          Paste a job description and upload your resume to get AI-powered career insights
+          Paste a job description and add your resume to prepare for AI-powered career insights
         </p>
       </div>
 
-      {/* Dual-pane layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left pane - Job Description */}
-        <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-[#3C4166] flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#4FA7A7] to-[#7ED7F7] flex items-center justify-center">
+            <CardTitle className="flex items-center gap-2 text-lg text-[#3C4166]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#4FA7A7] to-[#7ED7F7]">
                 <FileText className="h-4 w-4 text-white" />
               </div>
               Job Description
@@ -218,6 +263,7 @@ export default function AnalysisPage() {
               Paste the full job description for the role you&apos;re targeting
             </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <textarea
               value={jobDescription}
@@ -230,242 +276,336 @@ We're looking for a Product Manager to lead our growth team. You'll work cross-f
 
 Requirements
 • 3+ years of product management experience
-• Strong analytical skills (SQL, data analysis)
-• Experience with A/B testing and experimentation
-• Excellent communication and stakeholder management
-• Technical background preferred`}
-              className="w-full h-72 rounded-xl border border-[#3C4166]/10 bg-white/80 p-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20 resize-none transition-all"
+• Strong analytical skills
+• Experience with experimentation
+• Excellent stakeholder management`}
+              className="h-72 w-full resize-none rounded-xl border border-[#3C4166]/10 bg-white/80 p-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 transition-all focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20"
             />
-            
+
             <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-[#3C4166]/10" />
+              <div className="h-px flex-1 bg-[#3C4166]/10" />
               <span className="text-xs text-[#6B6F8E]">or paste a URL</span>
-              <div className="flex-1 h-px bg-[#3C4166]/10" />
+              <div className="h-px flex-1 bg-[#3C4166]/10" />
             </div>
 
             <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B6F8E]" />
+              <div className="relative flex-1">
+                <LinkIcon className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B6F8E]" />
                 <input
                   type="url"
                   value={jobUrl}
-                  onChange={(e) => setJobUrl(e.target.value)}
+                  onChange={(e) => {
+                    setJobUrl(e.target.value)
+                    setUrlStatus("idle")
+                  }}
                   placeholder="linkedin.com/jobs/... or greenhouse.io/..."
-                  className="w-full h-11 rounded-xl border border-[#3C4166]/10 bg-white/80 pl-10 pr-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20 transition-all"
+                  className="h-11 w-full rounded-xl border border-[#3C4166]/10 bg-white/80 pl-10 pr-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 transition-all focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20"
                 />
               </div>
-              <Button variant="outline" className="h-11 border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5 px-5">
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleFetchUrl}
+                className="h-11 border-[#3C4166]/15 px-5 text-[#3C4166] hover:bg-[#3C4166]/5"
+              >
                 Fetch
               </Button>
             </div>
 
-            {jobDescription && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-[#C8F5DF]/30 border border-[#4FA7A7]/20">
+            {urlStatus === "saved" && (
+              <div className="flex items-center gap-2 rounded-lg border border-[#4FA7A7]/20 bg-[#C8F5DF]/30 p-3">
+                <CheckCircle2 className="h-4 w-4 text-[#4FA7A7]" />
+                <span className="text-sm text-[#3C4166]">
+                  URL saved for later extraction
+                </span>
+              </div>
+            )}
+
+            {urlStatus === "invalid" && (
+              <div className="flex items-center gap-2 rounded-lg border border-[#FF8FA3]/20 bg-[#FF8FA3]/10 p-3">
+                <AlertCircle className="h-4 w-4 text-[#FF8FA3]" />
+                <span className="text-sm text-[#3C4166]">
+                  Please enter a valid URL
+                </span>
+              </div>
+            )}
+
+            {jobDescription.trim().length > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border border-[#4FA7A7]/20 bg-[#C8F5DF]/30 p-3">
                 <CheckCircle2 className="h-4 w-4 text-[#4FA7A7]" />
                 <span className="text-sm text-[#3C4166]">Job description ready</span>
-                <span className="text-xs text-[#6B6F8E] ml-auto">{jobDescription.split(" ").length} words</span>
+                <span className="ml-auto text-xs text-[#6B6F8E]">
+                  {jobWordCount} words
+                </span>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Right pane - Resume Upload */}
-        <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+        <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-[#3C4166] flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#E87BF1] to-[#C9B6E4] flex items-center justify-center">
+            <CardTitle className="flex items-center gap-2 text-lg text-[#3C4166]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#E87BF1] to-[#C9B6E4]">
                 <Upload className="h-4 w-4 text-white" />
               </div>
               Your Resume
             </CardTitle>
             <CardDescription className="text-[#6B6F8E]">
-              Upload your resume or use your saved profile
+              Upload your resume, paste the text, or use your saved profile
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {!resumeUploaded ? (
-              <div 
-                onClick={() => setResumeUploaded(true)}
-                className="border-2 border-dashed border-[#3C4166]/15 rounded-xl p-8 text-center hover:border-[#E87BF1]/50 hover:bg-[#E87BF1]/5 transition-all cursor-pointer group"
-              >
-                <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-[#E87BF1]/15 to-[#C9B6E4]/15 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  <Upload className="h-7 w-7 text-[#E87BF1]" />
+
+          <CardContent className="space-y-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
+            <div className={useSavedProfile ? "opacity-50 pointer-events-none" : ""}>
+              {!resumeFile ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+                    isDragging
+                      ? "border-[#E87BF1] bg-[#E87BF1]/5"
+                      : "border-[#3C4166]/15 hover:border-[#E87BF1]/40 hover:bg-[#E87BF1]/5"
+                  }`}
+                >
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F7C7D4]/50 to-[#E87BF1]/15">
+                    <Upload className="h-7 w-7 text-[#E87BF1]" />
+                  </div>
+
+                  <p className="font-medium text-[#3C4166]">
+                    Click to upload or drag and drop
+                  </p>
+                  <p className="mt-1 text-sm text-[#6B6F8E]">
+                    PDF, DOCX, DOC, or TXT up to 5MB
+                  </p>
+
+                  <div className="mt-4 inline-flex rounded-full bg-[#3C4166]/5 px-3 py-1 text-xs text-[#6B6F8E]">
+                    Supports ATS-optimized formats
+                  </div>
                 </div>
-                <p className="text-sm font-medium text-[#3C4166] mb-1">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-[#6B6F8E] mb-4">
-                  PDF, DOCX, or TXT (max 5MB)
-                </p>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#3C4166]/5 text-xs text-[#6B6F8E]">
-                  <FileText className="h-3 w-3" />
-                  Supports ATS-optimized formats
+              ) : (
+                <div className="rounded-xl border border-[#4FA7A7]/20 bg-[#C8F5DF]/30 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
+                      <File className="h-5 w-5 text-[#4FA7A7]" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-[#3C4166]">{resumeFile.name}</p>
+                      <p className="text-sm text-[#6B6F8E]">
+                        {formatFileSize(resumeFile.size)}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setResumeFile(null)}
+                      className="rounded-lg p-1 text-[#6B6F8E] transition-colors hover:bg-white hover:text-[#3C4166]"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="my-4 flex items-center gap-4">
+                <div className="h-px flex-1 bg-[#3C4166]/10" />
+                <span className="text-xs text-[#6B6F8E]">or</span>
+                <div className="h-px flex-1 bg-[#3C4166]/10" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowResumeText((prev) => !prev)
+                  setResumeFile(null)
+                  setUseSavedProfile(false)
+                  setResumeError("")
+                }}
+                className="h-11 w-full border-[#3C4166]/15 bg-transparent text-[#3C4166] hover:bg-[#3C4166]/5"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                {showResumeText ? "Hide pasted resume text" : "Paste resume text instead"}
+              </Button>
+
+              {showResumeText && (
+                <div className="mt-4 space-y-3">
+                  <textarea
+                    value={resumeText}
+                    onChange={(e) => handleResumeTextChange(e.target.value)}
+                    placeholder="Paste your resume text here..."
+                    className="h-44 w-full resize-none rounded-xl border border-[#3C4166]/10 bg-white/80 p-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 transition-all focus:border-[#E87BF1] focus:outline-none focus:ring-2 focus:ring-[#E87BF1]/20"
+                  />
+
+                  {resumeText.trim().length > 0 && (
+                    <div className="flex items-center gap-2 rounded-lg border border-[#4FA7A7]/20 bg-[#C8F5DF]/30 p-3">
+                      <CheckCircle2 className="h-4 w-4 text-[#4FA7A7]" />
+                      <span className="text-sm text-[#3C4166]">Resume text ready</span>
+                      <span className="ml-auto text-xs text-[#6B6F8E]">
+                        {resumeWordCount} words
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <label className="block cursor-pointer rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/60 p-4 transition-all hover:border-[#4FA7A7]/20">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={useSavedProfile}
+                  onChange={handleToggleSavedProfile}
+                  className="mt-1 h-4 w-4 rounded border-[#3C4166]/20 accent-[#4FA7A7]"
+                />
+
+                <div className="flex-1">
+                  <p className="font-medium text-[#3C4166]">
+                    Use my saved Kestrel profile instead
+                  </p>
+                  <p className="mt-1 text-sm text-[#6B6F8E]">
+                    Your profile was last updated 3 days ago
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="flex items-center justify-between p-4 rounded-xl bg-[#C8F5DF]/30 border border-[#4FA7A7]/20">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-[#4FA7A7]/10 flex items-center justify-center">
-                    <FileText className="h-6 w-6 text-[#4FA7A7]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-[#3C4166]">Alex_Johnson_Resume.pdf</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-[#6B6F8E]">245 KB</span>
-                      <span className="text-xs text-[#4FA7A7]">Ready to analyze</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setResumeUploaded(false)}
-                  className="p-2 text-[#6B6F8E] hover:text-[#3C4166] hover:bg-[#3C4166]/5 rounded-lg transition-all"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+            </label>
+
+            {resumeError && (
+              <div className="flex items-center gap-2 rounded-lg border border-[#FF8FA3]/20 bg-[#FF8FA3]/10 p-3">
+                <AlertCircle className="h-4 w-4 text-[#FF8FA3]" />
+                <span className="text-sm text-[#3C4166]">{resumeError}</span>
               </div>
             )}
-
-            {/* Divider */}
-            <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-[#3C4166]/10" />
-              <span className="text-xs text-[#6B6F8E]">or</span>
-              <div className="flex-1 h-px bg-[#3C4166]/10" />
-            </div>
-
-            {/* Paste resume option */}
-            <Button 
-              variant="outline" 
-              className="w-full h-11 border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
-              onClick={() => setResumeUploaded(true)}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Paste resume text instead
-            </Button>
-
-            {/* Use saved profile option */}
-            <div className="mt-4 p-4 rounded-xl bg-[#F6F1E7]/50 border border-[#3C4166]/5">
-              <div className="flex items-center gap-3">
-                <input 
-                  type="checkbox" 
-                  id="use-profile" 
-                  className="rounded border-[#3C4166]/20 text-[#4FA7A7] focus:ring-[#4FA7A7]/20"
-                  onChange={(e) => {
-                    if (e.target.checked) setResumeUploaded(true)
-                  }}
-                />
-                <label htmlFor="use-profile" className="text-sm text-[#3C4166] cursor-pointer">
-                  Use my saved Kestrel profile instead
-                </label>
-              </div>
-              <p className="text-xs text-[#6B6F8E] mt-2 ml-6">
-                Your profile was last updated 3 days ago
-              </p>
-            </div>
           </CardContent>
-        </Card>
-
-        {/* Additional controls - spans both columns */}
-        <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-          <CardHeader className="pb-3">
-            <button 
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center justify-between w-full text-left"
-            >
-              <div>
-                <CardTitle className="text-lg text-[#3C4166]">Additional Options</CardTitle>
-                <CardDescription className="text-[#6B6F8E]">
-                  Customize your analysis settings
-                </CardDescription>
-              </div>
-              <ChevronDown className={`h-5 w-5 text-[#6B6F8E] transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
-            </button>
-          </CardHeader>
-          {showAdvanced && (
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#3C4166]">Target Role Title</label>
-                  <div className="relative">
-                    <Target className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B6F8E]" />
-                    <input
-                      type="text"
-                      value={targetRole}
-                      onChange={(e) => setTargetRole(e.target.value)}
-                      placeholder="e.g., Product Manager"
-                      className="w-full h-11 rounded-xl border border-[#3C4166]/10 bg-white/80 pl-10 pr-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#3C4166]">Desired Timeline</label>
-                  <div className="relative">
-                    <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B6F8E]" />
-                    <select
-                      value={timeline}
-                      onChange={(e) => setTimeline(e.target.value)}
-                      className="w-full h-11 rounded-xl border border-[#3C4166]/10 bg-white/80 pl-10 pr-4 text-sm text-[#3C4166] focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20 appearance-none cursor-pointer"
-                    >
-                      <option value="">Select timeline</option>
-                      <option value="1-month">Within 1 month</option>
-                      <option value="3-months">Within 3 months</option>
-                      <option value="6-months">Within 6 months</option>
-                      <option value="1-year">Within 1 year</option>
-                      <option value="exploring">Just exploring</option>
-                    </select>
-                    <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B6F8E] pointer-events-none" />
-                  </div>
-                </div>
-                <div className="space-y-2 md:col-span-1">
-                  <label className="text-sm font-medium text-[#3C4166]">Additional Notes</label>
-                  <input
-                    type="text"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Any extra context..."
-                    className="w-full h-11 rounded-xl border border-[#3C4166]/10 bg-white/80 px-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          )}
         </Card>
       </div>
 
-      {/* Submit area */}
-      <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center">
-        <div className="flex items-center gap-4 text-sm text-[#6B6F8E]">
+      <Card className="mt-6 border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((prev) => !prev)}
+          className="flex w-full items-center justify-between px-6 py-5 text-left"
+        >
+          <div>
+            <h3 className="text-lg font-semibold text-[#3C4166]">Additional Options</h3>
+            <p className="text-sm text-[#6B6F8E]">Customize your analysis settings</p>
+          </div>
+
+          {showAdvanced ? (
+            <ChevronUp className="h-5 w-5 text-[#6B6F8E]" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-[#6B6F8E]" />
+          )}
+        </button>
+
+        {showAdvanced && (
+          <CardContent className="grid grid-cols-1 gap-4 pt-0 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#3C4166]">
+                Target role
+              </label>
+              <div className="relative">
+                <Target className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B6F8E]" />
+                <input
+                  type="text"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  placeholder="Product Manager, Solutions Engineer..."
+                  className="h-11 w-full rounded-xl border border-[#3C4166]/10 bg-white/80 pl-10 pr-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 transition-all focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[#3C4166]">
+                Timeline
+              </label>
+              <div className="relative">
+                <Clock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B6F8E]" />
+                <select
+                  value={timeline}
+                  onChange={(e) => setTimeline(e.target.value)}
+                  className="h-11 w-full appearance-none rounded-xl border border-[#3C4166]/10 bg-white/80 pl-10 pr-4 text-sm text-[#3C4166] transition-all focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20"
+                >
+                  <option value="">Select a timeline</option>
+                  <option value="asap">ASAP</option>
+                  <option value="30-days">Within 30 days</option>
+                  <option value="60-days">Within 60 days</option>
+                  <option value="90-days">Within 90 days</option>
+                  <option value="exploring">Just exploring</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-[#3C4166]">
+                Notes for Kestrel
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Anything specific you want the analysis to focus on?"
+                className="h-28 w-full resize-none rounded-xl border border-[#3C4166]/10 bg-white/80 p-4 text-sm text-[#3C4166] placeholder:text-[#6B6F8E]/50 transition-all focus:border-[#4FA7A7] focus:outline-none focus:ring-2 focus:ring-[#4FA7A7]/20"
+              />
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-[#3C4166]/10 bg-white/70 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-[#6B6F8E]">
           <div className="flex items-center gap-2">
-            {jobDescription ? (
-              <CheckCircle2 className="h-4 w-4 text-[#4FA7A7]" />
-            ) : (
-              <div className="h-4 w-4 rounded-full border-2 border-[#3C4166]/20" />
-            )}
+            <span
+              className={`h-3 w-3 rounded-full ${
+                jobDescription.trim().length > 0 ? "bg-[#4FA7A7]" : "bg-[#3C4166]/15"
+              }`}
+            />
             <span>Job description</span>
           </div>
+
           <div className="flex items-center gap-2">
-            {resumeUploaded ? (
-              <CheckCircle2 className="h-4 w-4 text-[#4FA7A7]" />
-            ) : (
-              <div className="h-4 w-4 rounded-full border-2 border-[#3C4166]/20" />
-            )}
+            <span
+              className={`h-3 w-3 rounded-full ${
+                hasResumeSource ? "bg-[#4FA7A7]" : "bg-[#3C4166]/15"
+              }`}
+            />
             <span>Resume</span>
           </div>
         </div>
-        
-        <div className="flex gap-4 w-full sm:w-auto">
-          <Link href="/dashboard" className="flex-1 sm:flex-initial">
-            <Button variant="outline" className="w-full border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5">
-              Cancel
-            </Button>
-          </Link>
-          <Button 
-            onClick={handleAnalyze}
-            disabled={!jobDescription || !resumeUploaded}
-            className="flex-1 sm:flex-initial bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7] hover:from-[#4FA7A7]/90 hover:to-[#7ED7F7]/90 text-white rounded-full px-8 shadow-lg shadow-[#4FA7A7]/20 hover:shadow-xl hover:shadow-[#4FA7A7]/30 disabled:opacity-50 disabled:shadow-none transition-all"
+
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/dashboard")}
+            className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
           >
-            <Sparkles className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handleAnalyze}
+            disabled={!canAnalyze}
+            className={`min-w-[220px] rounded-full px-6 ${
+              canAnalyze
+                ? "bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7] text-white hover:opacity-95"
+                : "bg-[#DDE8EE] text-white hover:bg-[#DDE8EE]"
+            }`}
+          >
             Analyze with Kestrel
-            <ArrowRight className="h-4 w-4 ml-2" />
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
       </div>
