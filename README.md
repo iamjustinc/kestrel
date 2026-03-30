@@ -111,11 +111,6 @@ AI mock interviews
 Kestrel is not a resume tool.
 It is a career intelligence system that turns ambiguity into direction.
 
-⚡ Getting Started
-git clone https://github.com/your-username/kestrel.git
-cd kestrel
-npm install
-npm run dev
 📬 Contact
 
 Built by Justin @ justin886847@gmail.com
