@@ -102,25 +102,19 @@ function PasswordPageContent() {
       </div>
 
       {isSigningIn && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#F6F1E7]/88 backdrop-blur-md">
-          <div className="mx-4 w-full max-w-md rounded-[2rem] border-2 border-[#A8D0D0] bg-white/90 px-8 py-10 text-center shadow-[0_20px_80px_rgba(60,65,102,0.10)]">
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-[#3C4166]/10 bg-white shadow-sm">
-              <Mail className="h-10 w-10 text-[#2D3436] animate-pulse" />
-            </div>
-
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.32em] text-[#2D3436] sm:text-xs">
-              Welcome to Kestrel
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#F6F1E7]">
+          <div className="flex flex-col items-center px-6 text-center">
+            <Mail className="mb-5 h-12 w-12 text-[#2D3436]" />
 
             <h2 className="text-3xl font-black tracking-tight text-[#2D3436] sm:text-4xl">
               Welcome to Kestrel
             </h2>
 
-            <p className="mt-3 text-base text-[#2D3436]/75 sm:text-lg">
-              Getting your workspace ready...
+            <p className="mt-3 text-base text-[#2D3436]/70 sm:text-lg">
+              Signing you in...
             </p>
 
-            <div className="mt-7 flex items-center justify-center gap-2">
+            <div className="mt-6 flex items-center justify-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-[#4FA7A7] animate-bounce [animation-delay:-0.3s]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#7ED7F7] animate-bounce [animation-delay:-0.15s]" />
               <span className="h-2.5 w-2.5 rounded-full bg-[#C9B6E4] animate-bounce" />
