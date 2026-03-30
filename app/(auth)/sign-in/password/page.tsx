@@ -1,12 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { Suspense, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-export default function PasswordPage() {
+function PasswordPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -94,5 +94,13 @@ export default function PasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F6F1E7]" />}>
+      <PasswordPageContent />
+    </Suspense>
   )
 }
