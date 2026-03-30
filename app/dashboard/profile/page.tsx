@@ -1,20 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  User, 
-  Mail, 
-  MapPin, 
-  Briefcase, 
-  GraduationCap,
+import {
+  Mail,
+  MapPin,
+  Briefcase,
   Link as LinkIcon,
   Edit2,
   Plus,
   X,
   CheckCircle2,
-  ExternalLink,
   Target,
   Clock,
   TrendingUp,
@@ -28,6 +25,7 @@ import {
   History
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getDemoUser, getDisplayName, getInitials, type DemoUser } from "@/lib/demo-auth"
 
 // Mock profile data
 const profileData = {
@@ -38,15 +36,15 @@ const profileData = {
   linkedin: "linkedin.com/in/alexj",
   avatar: "AJ",
   profileStrength: 85,
-  
+
   targetRoles: [
     { role: "Product Manager", priority: "primary" },
     { role: "Solutions Engineer", priority: "secondary" },
     { role: "Technical PM", priority: "secondary" },
   ],
-  
+
   preferredIndustries: ["Fintech", "Developer Tools", "B2B SaaS", "Productivity"],
-  
+
   skills: [
     { name: "Product Strategy", level: "Expert", verified: true },
     { name: "Cross-functional Leadership", level: "Advanced", verified: true },
@@ -55,26 +53,26 @@ const profileData = {
     { name: "Agile/Scrum", level: "Advanced", verified: true },
     { name: "Stakeholder Management", level: "Advanced", verified: false },
   ],
-  
+
   resumeVersions: [
     { name: "PM_Resume_v3.pdf", uploadedAt: "2 hours ago", current: true, size: "245 KB" },
     { name: "PM_Resume_v2.pdf", uploadedAt: "1 week ago", current: false, size: "238 KB" },
     { name: "SE_Resume_v1.pdf", uploadedAt: "2 weeks ago", current: false, size: "242 KB" },
   ],
-  
+
   goals: {
     targetDate: "Q2 2026",
     status: "On Track",
     currentReadiness: 78,
     targetReadiness: 90,
   },
-  
+
   milestones: [
     { title: "Complete SQL Course", target: "April 15", status: "in-progress", progress: 35 },
     { title: "Update Resume with Metrics", target: "April 1", status: "complete", progress: 100 },
     { title: "Get Amplitude Certification", target: "April 20", status: "upcoming", progress: 0 },
   ],
-  
+
   recentProgress: [
     { action: "Completed resume optimization", date: "Today", type: "achievement" },
     { action: "Started SQL fundamentals course", date: "Yesterday", type: "learning" },
@@ -85,6 +83,20 @@ const profileData = {
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
+  const [demoUser, setDemoUser] = useState<DemoUser | null>(null)
+
+  useEffect(() => {
+    setDemoUser(getDemoUser())
+  }, [])
+
+  const liveProfileData = useMemo(() => {
+    return {
+      ...profileData,
+      name: getDisplayName(demoUser),
+      email: demoUser?.email ?? profileData.email,
+      avatar: getInitials(demoUser),
+    }
+  }, [demoUser])
 
   return (
     <div className="pb-20 lg:pb-0">
@@ -98,11 +110,11 @@ export default function ProfilePage() {
             Your personalized career intelligence hub
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => setIsEditing(!isEditing)}
           variant={isEditing ? "default" : "outline"}
-          className={isEditing 
-            ? "bg-[#4FA7A7] hover:bg-[#4FA7A7]/90 text-white" 
+          className={isEditing
+            ? "bg-[#4FA7A7] hover:bg-[#4FA7A7]/90 text-white"
             : "border-[#3C4166]/15 text-[#3C4166]"
           }
         >
@@ -131,7 +143,7 @@ export default function ProfilePage() {
                 {/* Avatar */}
                 <div className="relative">
                   <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-[#C9B6E4] to-[#F7C7D4] ring-4 ring-white shadow-lg flex items-center justify-center">
-                    <span className="text-3xl font-bold text-white">{profileData.avatar}</span>
+                    <span className="text-3xl font-bold text-white">{liveProfileData.avatar}</span>
                   </div>
                   {isEditing && (
                     <button className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-[#4FA7A7] text-white flex items-center justify-center shadow-md hover:bg-[#4FA7A7]/90 transition-colors">
@@ -139,11 +151,11 @@ export default function ProfilePage() {
                     </button>
                   )}
                 </div>
-                
+
                 {/* Basic info */}
                 <div className="flex-1 pb-2">
-                  <h2 className="text-xl font-semibold text-[#3C4166]">{profileData.name}</h2>
-                  <p className="text-[#6B6F8E]">{profileData.headline}</p>
+                  <h2 className="text-xl font-semibold text-[#3C4166]">{liveProfileData.name}</h2>
+                  <p className="text-[#6B6F8E]">{liveProfileData.headline}</p>
                 </div>
 
                 {/* Profile strength */}
@@ -151,12 +163,12 @@ export default function ProfilePage() {
                   <p className="text-sm text-[#6B6F8E] mb-1">Profile Strength</p>
                   <div className="flex items-center gap-2 sm:justify-end">
                     <div className="w-24 h-2 rounded-full bg-[#3C4166]/10 overflow-hidden">
-                      <div 
+                      <div
                         className="h-full rounded-full bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7]"
-                        style={{ width: `${profileData.profileStrength}%` }}
+                        style={{ width: `${liveProfileData.profileStrength}%` }}
                       />
                     </div>
-                    <span className="text-sm font-semibold text-[#4FA7A7]">{profileData.profileStrength}%</span>
+                    <span className="text-sm font-semibold text-[#4FA7A7]">{liveProfileData.profileStrength}%</span>
                   </div>
                 </div>
               </div>
@@ -165,15 +177,15 @@ export default function ProfilePage() {
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F6F1E7]/50">
                   <Mail className="h-4 w-4 text-[#6B6F8E]" />
-                  <span className="text-sm text-[#3C4166]">{profileData.email}</span>
+                  <span className="text-sm text-[#3C4166]">{liveProfileData.email}</span>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F6F1E7]/50">
                   <MapPin className="h-4 w-4 text-[#6B6F8E]" />
-                  <span className="text-sm text-[#3C4166]">{profileData.location}</span>
+                  <span className="text-sm text-[#3C4166]">{liveProfileData.location}</span>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F6F1E7]/50">
                   <LinkIcon className="h-4 w-4 text-[#6B6F8E]" />
-                  <span className="text-sm text-[#4FA7A7]">{profileData.linkedin}</span>
+                  <span className="text-sm text-[#4FA7A7]">{liveProfileData.linkedin}</span>
                 </div>
               </div>
             </CardContent>
@@ -202,8 +214,8 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {profileData.targetRoles.map((role) => (
-                  <span 
+                {liveProfileData.targetRoles.map((role) => (
+                  <span
                     key={role.role}
                     className={cn(
                       "px-4 py-2 rounded-full text-sm font-medium border flex items-center gap-2",
@@ -240,8 +252,8 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {profileData.preferredIndustries.map((industry) => (
-                  <span 
+                {liveProfileData.preferredIndustries.map((industry) => (
+                  <span
                     key={industry}
                     className="px-3 py-1.5 rounded-full bg-[#F6F1E7] text-[#3C4166] text-sm border border-[#3C4166]/10"
                   >
@@ -281,8 +293,8 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {profileData.skills.map((skill) => (
-                  <div 
+                {liveProfileData.skills.map((skill) => (
+                  <div
                     key={skill.name}
                     className="flex items-center justify-between p-3 rounded-xl bg-[#F6F1E7]/50 border border-[#3C4166]/5 group"
                   >
@@ -295,7 +307,7 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-2">
                       <span className={cn(
                         "text-xs px-2 py-0.5 rounded-full",
-                        skill.level === "Expert" 
+                        skill.level === "Expert"
                           ? "bg-[#4FA7A7]/15 text-[#4FA7A7]"
                           : skill.level === "Advanced"
                             ? "bg-[#E87BF1]/15 text-[#E87BF1]"
@@ -337,8 +349,8 @@ export default function ProfilePage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {profileData.resumeVersions.map((resume) => (
-                <div 
+              {liveProfileData.resumeVersions.map((resume) => (
+                <div
                   key={resume.name}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-xl border",
@@ -391,7 +403,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <CardTitle className="text-lg text-[#3C4166]">Career Goal</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">Target: {profileData.goals.targetDate}</CardDescription>
+                  <CardDescription className="text-[#6B6F8E]">Target: {liveProfileData.goals.targetDate}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -416,7 +428,7 @@ export default function ProfilePage() {
                       strokeWidth="8"
                       fill="none"
                       strokeLinecap="round"
-                      strokeDasharray={`${(profileData.goals.currentReadiness / 100) * 352} 352`}
+                      strokeDasharray={`${(liveProfileData.goals.currentReadiness / 100) * 352} 352`}
                     />
                     <defs>
                       <linearGradient id="profileGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -426,29 +438,29 @@ export default function ProfilePage() {
                     </defs>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold text-[#3C4166]">{profileData.goals.currentReadiness}%</span>
+                    <span className="text-3xl font-bold text-[#3C4166]">{liveProfileData.goals.currentReadiness}%</span>
                     <span className="text-xs text-[#6B6F8E]">Ready</span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-[#6B6F8E]">Target Readiness</span>
-                <span className="font-medium text-[#4FA7A7]">{profileData.goals.targetReadiness}%</span>
+                <span className="font-medium text-[#4FA7A7]">{liveProfileData.goals.targetReadiness}%</span>
               </div>
               <div className="h-2 rounded-full bg-[#3C4166]/10 overflow-hidden mb-4">
-                <div 
+                <div
                   className="h-full rounded-full bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7]"
-                  style={{ width: `${(profileData.goals.currentReadiness / profileData.goals.targetReadiness) * 100}%` }}
+                  style={{ width: `${(liveProfileData.goals.currentReadiness / liveProfileData.goals.targetReadiness) * 100}%` }}
                 />
               </div>
               <div className="flex items-center justify-center gap-2">
                 <span className={cn(
                   "text-xs px-2 py-1 rounded-full",
-                  profileData.goals.status === "On Track"
+                  liveProfileData.goals.status === "On Track"
                     ? "bg-[#C8F5DF] text-[#4FA7A7]"
                     : "bg-[#FF8FA3]/20 text-[#FF8FA3]"
                 )}>
-                  {profileData.goals.status}
+                  {liveProfileData.goals.status}
                 </span>
               </div>
             </CardContent>
@@ -468,8 +480,8 @@ export default function ProfilePage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {profileData.milestones.map((milestone) => (
-                <div 
+              {liveProfileData.milestones.map((milestone) => (
+                <div
                   key={milestone.title}
                   className={cn(
                     "p-3 rounded-xl border",
@@ -500,7 +512,7 @@ export default function ProfilePage() {
                   </div>
                   {milestone.status !== "complete" && milestone.status !== "upcoming" && (
                     <div className="h-1.5 rounded-full bg-[#3C4166]/10 overflow-hidden">
-                      <div 
+                      <div
                         className="h-full rounded-full bg-gradient-to-r from-[#E87BF1] to-[#C9B6E4]"
                         style={{ width: `${milestone.progress}%` }}
                       />
@@ -526,7 +538,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {profileData.recentProgress.map((item, i) => (
+                {liveProfileData.recentProgress.map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div className={cn(
                       "h-2 w-2 rounded-full mt-2",

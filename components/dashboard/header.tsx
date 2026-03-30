@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Bell, Menu, Plus, Search, CreditCard, LogOut, User, Settings } from "lucide-react"
 import Link from "next/link"
@@ -11,8 +12,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { getDemoUser, getDisplayName, getInitials, type DemoUser } from "@/lib/demo-auth"
 
 export function DashboardHeader() {
+  const [demoUser, setDemoUser] = useState<DemoUser | null>(null)
+
+  useEffect(() => {
+    setDemoUser(getDemoUser())
+  }, [])
+
+  const displayName = getDisplayName(demoUser)
+  const initials = getInitials(demoUser)
+  const email = demoUser?.email ?? "alex@example.com"
+
   return (
     <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#3C4166]/10 bg-white/70 backdrop-blur-xl px-4 lg:px-8">
       {/* Mobile menu button */}
@@ -68,16 +80,20 @@ export function DashboardHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 p-1 rounded-full hover:bg-[#3C4166]/5 transition-colors">
-              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#C9B6E4] to-[#F7C7D4] ring-2 ring-white shadow-md" />
+              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#C9B6E4] to-[#F7C7D4] ring-2 ring-white shadow-md flex items-center justify-center">
+                <span className="text-xs font-semibold text-white">{initials}</span>
+              </div>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-white/95 backdrop-blur-xl border-[#3C4166]/10">
             <DropdownMenuLabel className="py-3">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#C9B6E4] to-[#F7C7D4]" />
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#C9B6E4] to-[#F7C7D4] flex items-center justify-center">
+                  <span className="text-sm font-semibold text-white">{initials}</span>
+                </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-[#3C4166]">Alex Johnson</span>
-                  <span className="text-xs text-[#6B6F8E]">alex@example.com</span>
+                  <span className="text-sm font-medium text-[#3C4166]">{displayName}</span>
+                  <span className="text-xs text-[#6B6F8E]">{email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

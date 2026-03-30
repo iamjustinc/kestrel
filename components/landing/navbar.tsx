@@ -12,7 +12,6 @@ export function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#F6F1E7]/80 backdrop-blur-md border-b border-[#3C4166]/5">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#4FA7A7] to-[#7ED7F7] flex items-center justify-center">
               <svg
@@ -30,7 +29,6 @@ export function Navbar() {
             <span className="text-xl font-semibold text-[#3C4166] tracking-tight">Kestrel</span>
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             <Link href="#product" className="text-sm text-[#6B6F8E] hover:text-[#3C4166] transition-colors">
               Product
@@ -46,21 +44,19 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/dashboard">
+            <Link href="/sign-in">
               <Button variant="ghost" className="text-[#6B6F8E] hover:text-[#3C4166] hover:bg-[#3C4166]/5">
                 Sign In
               </Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href="/sign-up">
               <Button className="bg-[#4FA7A7] hover:bg-[#4FA7A7]/90 text-white rounded-full px-6">
                 Get Started
               </Button>
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2 text-[#3C4166]"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -69,7 +65,6 @@ export function Navbar() {
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-[#3C4166]/5">
             <div className="flex flex-col gap-4">
@@ -86,12 +81,12 @@ export function Navbar() {
                 Resources
               </Link>
               <hr className="border-[#3C4166]/10" />
-              <Link href="/dashboard">
+              <Link href="/sign-in">
                 <Button variant="ghost" className="w-full justify-start text-[#6B6F8E]">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/dashboard">
+              <Link href="/sign-up">
                 <Button className="w-full bg-[#4FA7A7] hover:bg-[#4FA7A7]/90 text-white rounded-full">
                   Get Started
                 </Button>
