@@ -192,3 +192,48 @@
 .animation-delay-500 {
   animation-delay: 500ms;
 }
+
+@media print {
+  body.kestrel-print-results * {
+    visibility: hidden !important;
+  }
+
+  body.kestrel-print-results main,
+  body.kestrel-print-results main *,
+  body.kestrel-print-results [data-slot="card"],
+  body.kestrel-print-results [data-slot="card"] * {
+    visibility: visible !important;
+  }
+
+  body.kestrel-print-results nav,
+  body.kestrel-print-results aside,
+  body.kestrel-print-results header,
+  body.kestrel-print-results button {
+    display: none !important;
+  }
+
+  body.kestrel-print-results main {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.kestrel-print-results main > div {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.kestrel-print-results [data-slot="card"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid rgba(60, 65, 102, 0.12) !important;
+    background: white !important;
+    backdrop-filter: none !important;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+}

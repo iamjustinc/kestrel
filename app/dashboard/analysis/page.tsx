@@ -187,76 +187,69 @@ export default function AnalysisPage() {
 
   const handleAnalyze = useCallback(async () => {
     if (!canAnalyze || isAnalyzing) return
-
+  
     setAnalysisError("")
     setIsAnalyzing(true)
     setCurrentStep(0)
-
+  
     const formData = new FormData()
     formData.append("jobDescription", jobDescription)
     formData.append("jobUrl", jobUrl)
     formData.append("targetRole", targetRole)
     formData.append("timeline", timeline)
     formData.append("notes", notes)
-
+  
     if (resumeFile) {
       formData.append("resumeFile", resumeFile)
     }
-
+  
     if (resumeText.trim()) {
       formData.append("resumeText", resumeText.trim())
     }
-
+  
     if (useSavedProfile && savedProfile?.resumeText) {
       formData.append("savedProfileResumeText", savedProfile.resumeText)
     }
-
-    const startedAt = Date.now()
-
+  
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
         body: formData,
       })
-      
+  
       const raw = await response.text()
-      
+  
       let data: any = null
-      
+  
       try {
         data = raw ? JSON.parse(raw) : null
       } catch {
         throw new Error(raw || "Server returned a non-JSON response.")
       }
-      
+  
       if (!response.ok) {
         throw new Error(data?.error || "Failed to analyze this application.")
       }
-
+  
       if (data?.normalizedResumeText) {
         const nextSavedProfile: SavedProfile = {
           resumeText: data.normalizedResumeText,
           updatedAt: new Date().toISOString(),
         }
-
+  
         window.localStorage.setItem(
           "kestrel_saved_profile",
           JSON.stringify(nextSavedProfile)
         )
         setSavedProfile(nextSavedProfile)
       }
-
+  
       window.localStorage.setItem("kestrel_last_analysis", JSON.stringify(data))
-
-      const minimumAnimationTime = 2400
-      const elapsed = Date.now() - startedAt
-
-      if (elapsed < minimumAnimationTime) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, minimumAnimationTime - elapsed)
-        )
-      }
-
+  
+      setCurrentStep(analysisSteps.length - 1)
+  
+      await new Promise((resolve) => setTimeout(resolve, 350))
+  
       router.push("/dashboard/analysis/results")
     } catch (error) {
       setIsAnalyzing(false)
@@ -282,23 +275,41 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     if (!isAnalyzing) return
-
+  
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
-        if (prev >= analysisSteps.length - 1) return prev
+        if (prev >= analysisSteps.length - 2) return prev
         return prev + 1
       })
-    }, 850)
-
+    }, 450)
+  
     return () => {
       clearInterval(interval)
     }
   }, [isAnalyzing])
 
+  const isWrappingUp = currentStep >= analysisSteps.length - 1
+
+const displayedStepLabel = isWrappingUp
+  ? "Wrapping up"
+  : analysisSteps[currentStep]
+
+const displayedProgress = isWrappingUp
+  ? 99
+  : Math.min(
+      99,
+      Math.round(((currentStep + 1) / analysisSteps.length) * 100)
+    )
+
+const displayedSteps = isWrappingUp
+  ? [...analysisSteps.slice(0, analysisSteps.length - 1), "Wrapping up"]
+  : analysisSteps.slice(0, currentStep + 1)
+
   if (isAnalyzing) {
     return (
       <div className="mx-auto max-w-3xl pb-20 lg:pb-0">
         <div className="flex min-h-[70vh] flex-col items-center justify-center">
+  
           <div className="relative mb-10">
             <div
               className="absolute inset-0 rounded-full bg-gradient-to-br from-[#4FA7A7] to-[#E87BF1] blur-3xl opacity-25 animate-pulse"
@@ -308,52 +319,67 @@ export default function AnalysisPage() {
               <Sparkles className="h-10 w-10 text-white animate-pulse" />
             </div>
           </div>
-
+  
           <div className="mb-8 text-center">
             <h2 className="mb-3 text-2xl font-semibold text-[#3C4166]">
               Analyzing with Kestrel
             </h2>
+  
             <p className="flex items-center justify-center gap-2 text-[#6B6F8E]">
-              {analysisSteps[currentStep]}
+              {displayedStepLabel}
               <span className="inline-flex">
                 <span className="animate-bounce" style={{ animationDelay: "0ms" }}>.</span>
                 <span className="animate-bounce" style={{ animationDelay: "150ms" }}>.</span>
                 <span className="animate-bounce" style={{ animationDelay: "300ms" }}>.</span>
               </span>
             </p>
+  
+            <p className="mt-2 text-sm text-[#6B6F8E]/80">
+              This may take up to 2 minutes
+            </p>
           </div>
-
+  
           <div className="mb-7 w-full max-w-md">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs text-[#6B6F8E]">Progress</span>
               <span className="text-xs font-medium text-[#4FA7A7]">
-                {Math.round(((currentStep + 1) / analysisSteps.length) * 100)}%
+                {displayedProgress}%
               </span>
             </div>
+  
             <div className="h-2 overflow-hidden rounded-full bg-[#3C4166]/10">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-[#4FA7A7] to-[#E87BF1] transition-all duration-500"
-                style={{ width: `${((currentStep + 1) / analysisSteps.length) * 100}%` }}
+                style={{ width: `${displayedProgress}%` }}
               />
             </div>
           </div>
-
+  
           <div className="w-full max-w-md rounded-xl border border-[#3C4166]/10 bg-white/70 p-4 backdrop-blur-sm">
             <div className="space-y-2 font-mono text-xs text-[#6B6F8E]">
-              {analysisSteps.slice(0, currentStep + 1).map((step, index) => (
-                <div key={step} className="flex items-center gap-2">
+              {displayedSteps.map((step, index) => (
+                <div key={`${step}-${index}`} className="flex items-center gap-2">
                   <CheckCircle2
                     className={`h-3 w-3 ${
-                      index === currentStep ? "text-[#E87BF1]" : "text-[#4FA7A7]"
+                      index === displayedSteps.length - 1
+                        ? "text-[#E87BF1]"
+                        : "text-[#4FA7A7]"
                     }`}
                   />
-                  <span className={index === currentStep ? "text-[#3C4166]" : ""}>
+                  <span
+                    className={
+                      index === displayedSteps.length - 1
+                        ? "text-[#3C4166]"
+                        : ""
+                    }
+                  >
                     {step}...
                   </span>
                 </div>
               ))}
             </div>
           </div>
+  
         </div>
       </div>
     )

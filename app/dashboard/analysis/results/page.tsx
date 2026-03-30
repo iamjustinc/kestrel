@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -98,6 +98,17 @@ type ResultsAnalysisData = {
 
 type GapBucketKey = "technical" | "productBusiness" | "communication" | "toolsPlatforms"
 type StepBucketKey = "now" | "soon" | "later"
+type SavedAnalysisRecord = {
+  id: string
+  savedAt: string
+  role: string
+  company: string
+  readinessScore: number
+  confidenceLevel: string
+  atsScore: number
+  matchSummary: string
+  analysis: ResultsAnalysisData
+}
 
 const emptyAnalysisData: ResultsAnalysisData = {
   role: "Target Role",
@@ -535,6 +546,7 @@ export default function AnalysisResultsPage() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [expandedGaps, setExpandedGaps] = useState<GapBucketKey[]>(["technical"])
   const [savedSuggestions, setSavedSuggestions] = useState<number[]>([])
+  const resultsPrintRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     try {
@@ -557,6 +569,90 @@ export default function AnalysisResultsPage() {
     )
   }
 
+  const handleSaveAnalysis = () => {
+    if (!analysisData) return
+
+    try {
+      const existingRaw = window.localStorage.getItem("kestrel_saved_analyses")
+      const existing = existingRaw ? JSON.parse(existingRaw) : []
+
+      const nextItem: SavedAnalysisRecord = {
+        id: `analysis_${Date.now()}`,
+        savedAt: new Date().toISOString(),
+        role: analysisData.role,
+        company: analysisData.company,
+        readinessScore: analysisData.readinessScore,
+        confidenceLevel: analysisData.confidenceLevel,
+        atsScore: analysisData.atsScore,
+        matchSummary: analysisData.matchSummary,
+        analysis: analysisData,
+      }
+
+      const normalizedExisting = Array.isArray(existing) ? existing : []
+
+      const deduped = normalizedExisting.filter((item: any) => {
+        return !(
+          item?.role === nextItem.role &&
+          item?.company === nextItem.company &&
+          item?.matchSummary === nextItem.matchSummary
+        )
+      })
+
+      const nextSaved = [nextItem, ...deduped]
+
+      window.localStorage.setItem(
+        "kestrel_saved_analyses",
+        JSON.stringify(nextSaved)
+      )
+
+      window.dispatchEvent(new Event("kestrel-saved-analyses-updated"))
+
+      window.alert("Saved to Saved Analyses.")
+    } catch (error) {
+      console.error("Failed to save analysis:", error)
+      window.alert("Could not save this analysis.")
+    }
+  }
+
+  const handleExportPdf = () => {
+    if (typeof window === "undefined") return
+
+    const currentTitle = document.title
+    document.body.classList.add("kestrel-print-results")
+    document.title = `${analysisData?.role || "Kestrel Analysis"} - ${analysisData?.company || "Results"}`
+
+    setTimeout(() => {
+      window.print()
+
+      setTimeout(() => {
+        document.body.classList.remove("kestrel-print-results")
+        document.title = currentTitle
+      }, 200)
+    }, 100)
+  }
+
+  const handleCompare = () => {
+    if (!analysisData) return
+
+    try {
+      window.localStorage.setItem(
+        "kestrel_compare_baseline",
+        JSON.stringify({
+          id: `compare_${Date.now()}`,
+          savedAt: new Date().toISOString(),
+          role: analysisData.role,
+          company: analysisData.company,
+          analysis: analysisData,
+        })
+      )
+
+      window.alert("Saved this analysis as your comparison baseline.")
+    } catch (error) {
+      console.error("Failed to save comparison baseline:", error)
+      window.alert("Could not save comparison baseline.")
+    }
+  }
+
   const handleCopySuggestion = async (text: string, index: number) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -574,7 +670,7 @@ export default function AnalysisResultsPage() {
 
   if (!analysisData) {
     return (
-      <div className="pb-20 lg:pb-0">
+      <div id="analysis-print-root" className="pb-20 lg:pb-0">
         <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
           <CardContent className="py-16 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4FA7A7]/20 to-[#E87BF1]/20">
@@ -598,7 +694,7 @@ export default function AnalysisResultsPage() {
   }
 
   return (
-    <div className="pb-20 lg:pb-0">
+    <div ref={resultsPrintRef} className="pb-20 lg:pb-0">
       <Card className="mb-8 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm border-[#3C4166]/10 overflow-hidden relative">
         <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-gradient-to-br from-[#4FA7A7]/10 via-[#7ED7F7]/10 to-[#C9B6E4]/10 blur-3xl -translate-y-1/2 translate-x-1/2" />
         <CardContent className="relative pt-8 pb-8">
@@ -665,30 +761,35 @@ export default function AnalysisResultsPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 lg:flex-col">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
-              >
-                <Bookmark className="mr-2 h-4 w-4" />
-                Save Analysis
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export PDF
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
-              >
-                <Share2 className="mr-2 h-4 w-4" />
-                Compare
-              </Button>
+            <Button
+  variant="outline"
+  size="sm"
+  onClick={handleSaveAnalysis}
+  className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+>
+  <Bookmark className="mr-2 h-4 w-4" />
+  Save Analysis
+</Button>
+
+<Button
+  variant="outline"
+  size="sm"
+  onClick={handleExportPdf}
+  className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+>
+  <Download className="mr-2 h-4 w-4" />
+  Export PDF
+</Button>
+
+<Button
+  variant="outline"
+  size="sm"
+  onClick={handleCompare}
+  className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+>
+  <Share2 className="mr-2 h-4 w-4" />
+  Compare
+</Button>
             </div>
           </div>
         </CardContent>

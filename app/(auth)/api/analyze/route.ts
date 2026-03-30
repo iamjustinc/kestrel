@@ -403,14 +403,59 @@ function normalizeMarketSignals(raw: any) {
   }
 }
 
+function splitRoleAndCompany(rawRole: unknown, rawCompany: unknown) {
+  let role = toNonEmptyString(rawRole, "Target Role")
+  let company = toNonEmptyString(rawCompany, "Unknown")
+
+  role = role.replace(/\s+\(.*?\)\s*$/, "").trim()
+
+  if (company === "Unknown") {
+    const match = role.match(
+      /^([A-Z][A-Za-z0-9&.\- ]+?)\s+(Project Manager|Product Manager|Program Manager|Consultant|Engineer|Designer|Analyst|Developer|Architect|Lead|Manager)\b/
+    )
+
+    if (match) {
+      const possibleCompany = match[1].trim()
+      const strippedRole = match[2].trim()
+
+      const blockedPrefixes = new Set([
+        "Senior",
+        "Lead",
+        "Principal",
+        "Staff",
+        "Global",
+        "Technical",
+        "Solutions",
+        "Growth",
+        "Product",
+        "Project",
+        "Program",
+        "Associate",
+        "Junior",
+      ])
+
+      if (!blockedPrefixes.has(possibleCompany)) {
+        company = possibleCompany
+        role = strippedRole
+      }
+    }
+  }
+
+  return {
+    role: role || "Target Role",
+    company: company || "Unknown",
+  }
+}
+
 function normalizeAnalysis(raw: any) {
   if (!raw || typeof raw !== "object") return null
 
+  const roleCompany = splitRoleAndCompany(raw?.role, raw?.company)
   const atsScore = clampPercent(raw?.atsScore ?? raw?.atsKeywords?.score, 0)
 
   return {
-    role: toNonEmptyString(raw?.role, "Target Role"),
-    company: toNonEmptyString(raw?.company, "Unknown"),
+    role: roleCompany.role,
+    company: roleCompany.company,
     readinessScore: clampPercent(raw?.readinessScore, 0),
     confidenceLevel: normalizeConfidenceLevel(raw?.confidenceLevel),
     atsScore,
