@@ -12,6 +12,7 @@ function PasswordPageContent() {
 
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [isSigningIn, setIsSigningIn] = useState(false)
 
   const email = searchParams.get("email") || "name@example.com"
 
@@ -20,8 +21,13 @@ function PasswordPageContent() {
   }, [password])
 
   const handleConfirm = () => {
-    if (!canContinue) return
-    router.push("/dashboard")
+    if (!canContinue || isSigningIn) return
+
+    setIsSigningIn(true)
+
+    setTimeout(() => {
+      router.push("/dashboard")
+    }, 1800)
   }
 
   return (
@@ -36,7 +42,7 @@ function PasswordPageContent() {
 
           <div className="mb-8 text-center">
             <p className="mb-3 text-[11px] font-black uppercase tracking-[0.32em] text-[#2D3436] sm:text-xs">
-              Welcome to Quail
+              Welcome to Kestrel
             </p>
             <h1 className="text-4xl font-black tracking-tight text-[#2D3436] sm:text-5xl">
               Enter password
@@ -72,27 +78,56 @@ function PasswordPageContent() {
 
             <Button
               onClick={handleConfirm}
-              disabled={!canContinue}
+              disabled={!canContinue || isSigningIn}
               className={`h-16 w-full rounded-[1.6rem] text-xl font-black transition-all ${
-                canContinue
+                canContinue && !isSigningIn
                   ? "bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7] text-white hover:opacity-95 shadow-md shadow-[#4FA7A7]/20"
                   : "bg-[#DDE8EE] text-white opacity-100"
               }`}
             >
-              Confirm
+              {isSigningIn ? "Signing in..." : "Confirm"}
             </Button>
 
             <Button
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="h-16 w-full rounded-[1.6rem] border-2 border-[#A8D0D0] bg-transparent text-xl font-bold text-[#2D3436] hover:bg-[#3C4166]/5"
+              disabled={isSigningIn}
+              className="h-16 w-full rounded-[1.6rem] border-2 border-[#A8D0D0] bg-transparent text-xl font-bold text-[#2D3436] hover:bg-[#3C4166]/5 disabled:opacity-60"
             >
               Back
             </Button>
           </div>
         </div>
       </div>
+
+      {isSigningIn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#F6F1E7]/88 backdrop-blur-md">
+          <div className="mx-4 w-full max-w-md rounded-[2rem] border-2 border-[#A8D0D0] bg-white/90 px-8 py-10 text-center shadow-[0_20px_80px_rgba(60,65,102,0.10)]">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-[#3C4166]/10 bg-white shadow-sm">
+              <Mail className="h-10 w-10 text-[#2D3436] animate-pulse" />
+            </div>
+
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.32em] text-[#2D3436] sm:text-xs">
+              Welcome to Kestrel
+            </p>
+
+            <h2 className="text-3xl font-black tracking-tight text-[#2D3436] sm:text-4xl">
+              Welcome to Kestrel
+            </h2>
+
+            <p className="mt-3 text-base text-[#2D3436]/75 sm:text-lg">
+              Getting your workspace ready...
+            </p>
+
+            <div className="mt-7 flex items-center justify-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#4FA7A7] animate-bounce [animation-delay:-0.3s]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#7ED7F7] animate-bounce [animation-delay:-0.15s]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#C9B6E4] animate-bounce" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
