@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Mail } from "lucide-react"
@@ -10,15 +10,20 @@ import { saveDemoUser } from "@/lib/demo-auth"
 
 export default function SignInPage() {
   const router = useRouter()
+
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [rememberMe, setRememberMe] = useState(true)
 
+  const emailIsValid = useMemo(() => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  }, [email])
+
   const canContinue =
     firstName.trim().length > 0 &&
     lastName.trim().length > 0 &&
-    email.trim().length > 0
+    emailIsValid
 
   const handleContinue = () => {
     if (!canContinue) return
@@ -29,103 +34,121 @@ export default function SignInPage() {
       email: email.trim(),
     })
 
-    router.push("/dashboard")
+    router.push(`/sign-in/password?email=${encodeURIComponent(email.trim())}`)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#F6F1E7] relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-[#C9B6E4]/30 to-[#F7C7D4]/20 blur-[100px]" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-[#7ED7F7]/20 to-[#4FA7A7]/10 blur-[80px]" />
-        <div className="absolute top-1/3 right-1/3 w-[400px] h-[400px] rounded-full bg-gradient-to-br from-[#E87BF1]/10 to-[#C9B6E4]/15 blur-[90px]" />
-      </div>
-
-      <div className="relative w-full max-w-3xl">
-        <div className="rounded-[2.5rem] border-2 border-[#A8D0D0] bg-white/80 backdrop-blur-xl p-8 sm:p-12 shadow-xl shadow-[#3C4166]/5">
-          <div className="flex justify-center mb-8">
-            <div className="h-20 w-20 rounded-2xl border border-[#3C4166]/10 bg-white flex items-center justify-center">
-              <Mail className="h-10 w-10 text-[#2D3436]" />
+    <div className="min-h-screen bg-[#F6F1E7] px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] items-center justify-center">
+        <div className="w-full max-w-[760px] rounded-[2.25rem] border-2 border-[#A8D0D0] bg-white/80 px-6 py-7 shadow-[0_20px_60px_rgba(60,65,102,0.06)] backdrop-blur-xl sm:px-8 sm:py-8">
+          <div className="mb-6 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-[#3C4166]/10 bg-white">
+              <Mail className="h-8 w-8 text-[#2D3436]" />
             </div>
           </div>
 
-          <div className="text-center mb-10">
-            <p className="text-[12px] sm:text-sm font-black uppercase tracking-[0.35em] text-[#2D3436] mb-4">
+          <div className="mb-7 text-center">
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.32em] text-[#2D3436] sm:text-xs">
               Welcome to Quail
             </p>
-            <h1 className="text-5xl sm:text-6xl font-black tracking-tight text-[#2D3436]">
+            <h1 className="text-4xl font-black tracking-tight text-[#2D3436] sm:text-5xl">
               Sign in as:
             </h1>
           </div>
 
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
               <div>
-                <label className="block text-[13px] sm:text-sm font-black uppercase tracking-[0.25em] text-[#2D3436] mb-3">
+                <label className="mb-2 block text-[12px] font-black uppercase tracking-[0.22em] text-[#2D3436] sm:text-[13px]">
                   First Name
                 </label>
                 <Input
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Example"
-                  className="h-20 rounded-[1.75rem] border-2 border-[#A8D0D0] bg-transparent px-8 text-2xl text-[#2D3436] placeholder:text-[#2D3436]/40 shadow-none focus-visible:ring-0 focus-visible:border-[#4FA7A7]"
+                  className="h-16 rounded-[1.6rem] border-2 border-[#A8D0D0] bg-transparent px-6 text-lg text-[#2D3436] placeholder:text-[#2D3436]/40 shadow-none focus-visible:ring-0 focus-visible:border-[#4FA7A7]"
                 />
               </div>
 
               <div>
-                <label className="block text-[13px] sm:text-sm font-black uppercase tracking-[0.25em] text-[#2D3436] mb-3">
+                <label className="mb-2 block text-[12px] font-black uppercase tracking-[0.22em] text-[#2D3436] sm:text-[13px]">
                   Last Name
                 </label>
                 <Input
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Example"
-                  className="h-20 rounded-[1.75rem] border-2 border-[#A8D0D0] bg-transparent px-8 text-2xl text-[#2D3436] placeholder:text-[#2D3436]/40 shadow-none focus-visible:ring-0 focus-visible:border-[#4FA7A7]"
+                  className="h-16 rounded-[1.6rem] border-2 border-[#A8D0D0] bg-transparent px-6 text-lg text-[#2D3436] placeholder:text-[#2D3436]/40 shadow-none focus-visible:ring-0 focus-visible:border-[#4FA7A7]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[13px] sm:text-sm font-black uppercase tracking-[0.25em] text-[#2D3436] mb-3">
+              <label className="mb-2 block text-[12px] font-black uppercase tracking-[0.22em] text-[#2D3436] sm:text-[13px]">
                 Email Address
               </label>
               <Input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="h-20 rounded-[1.75rem] border-2 border-[#A8D0D0] bg-transparent px-8 text-2xl text-[#2D3436] placeholder:text-[#2D3436]/40 shadow-none focus-visible:ring-0 focus-visible:border-[#4FA7A7]"
+                className={`h-16 rounded-[1.6rem] border-2 bg-transparent px-6 text-lg text-[#2D3436] placeholder:text-[#2D3436]/40 shadow-none focus-visible:ring-0 ${
+                  email.length === 0
+                    ? "border-[#A8D0D0] focus-visible:border-[#4FA7A7]"
+                    : emailIsValid
+                    ? "border-[#7BC6AE] focus-visible:border-[#7BC6AE]"
+                    : "border-[#E7B7BF] focus-visible:border-[#E7B7BF]"
+                }`}
               />
+
+              <div className="mt-2 min-h-[20px]">
+                {email.length > 0 && emailIsValid && (
+                  <p className="text-sm font-medium text-[#5E9E84]">
+                    Valid email format detected
+                  </p>
+                )}
+
+                {email.length > 0 && !emailIsValid && (
+                  <p className="text-sm font-medium text-[#C47A87]">
+                    Please enter a valid email like name@example.com
+                  </p>
+                )}
+              </div>
             </div>
 
             <Button
               onClick={handleContinue}
               disabled={!canContinue}
-              className="h-24 w-full rounded-[1.75rem] bg-[#DDE8EE] text-white text-2xl font-black hover:bg-[#4FA7A7] disabled:opacity-100 disabled:bg-[#DDE8EE] disabled:text-white"
+              className={`h-16 w-full rounded-[1.6rem] text-xl font-black transition-all ${
+                canContinue
+                  ? "bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7] text-white hover:opacity-95 shadow-md shadow-[#4FA7A7]/20"
+                  : "bg-[#DDE8EE] text-white opacity-100"
+              }`}
             >
               Confirm
             </Button>
 
-            <label className="flex items-center gap-4 text-[#2D3436] text-xl font-medium cursor-pointer">
+            <label className="flex items-center gap-3 pt-1 text-lg font-medium text-[#2D3436]">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={() => setRememberMe(!rememberMe)}
-                className="h-7 w-7 rounded border-2 border-[#A8D0D0] accent-[#7ED7F7]"
+                className="h-5 w-5 rounded border-2 border-[#A8D0D0] accent-[#7ED7F7]"
               />
               Remember me
             </label>
 
-            <div className="text-center pt-2">
-              <p className="text-[13px] sm:text-sm font-black uppercase tracking-[0.35em] text-[#2D3436]">
+            <div className="pt-1 text-center">
+              <p className="text-[12px] font-black uppercase tracking-[0.32em] text-[#2D3436] sm:text-[13px]">
                 Or log in with
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <Button
                 variant="outline"
-                className="w-full h-24 rounded-[1.75rem] border-2 border-[#A8D0D0] bg-transparent text-[#2D3436] text-xl font-semibold hover:bg-[#3C4166]/5"
+                className="h-16 w-full rounded-[1.6rem] border-2 border-[#A8D0D0] bg-transparent text-lg font-semibold text-[#2D3436] hover:bg-[#3C4166]/5"
               >
-                <svg className="h-8 w-8 mr-3" viewBox="0 0 24 24">
+                <svg className="mr-3 h-6 w-6" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -136,16 +159,16 @@ export default function SignInPage() {
 
               <Button
                 variant="outline"
-                className="w-full h-24 rounded-[1.75rem] border-2 border-[#A8D0D0] bg-transparent text-[#2D3436] text-xl font-semibold hover:bg-[#3C4166]/5"
+                className="h-16 w-full rounded-[1.6rem] border-2 border-[#A8D0D0] bg-transparent text-lg font-semibold text-[#2D3436] hover:bg-[#3C4166]/5"
               >
-                <Mail className="h-8 w-8 mr-3" />
+                <Mail className="mr-3 h-6 w-6" />
                 Continue with Outlook
               </Button>
             </div>
 
-            <p className="text-center text-[#6B6F8E]">
+            <p className="pt-1 text-center text-sm text-[#6B6F8E]">
               Need an account?{" "}
-              <Link href="/sign-up" className="text-[#4FA7A7] font-semibold hover:underline">
+              <Link href="/sign-up" className="font-semibold text-[#4FA7A7] hover:underline">
                 Sign up
               </Link>
             </p>
