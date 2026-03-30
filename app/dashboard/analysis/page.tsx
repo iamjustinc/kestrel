@@ -31,12 +31,28 @@ const analysisSteps = [
 ]
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
-const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "txt"]
+const ALLOWED_EXTENSIONS = ["pdf", "docx", "txt"]
+
+type SavedProfile = {
+  resumeText: string
+  updatedAt: string
+}
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatSavedDate(value: string) {
+  try {
+    return new Date(value).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    })
+  } catch {
+    return "recently"
+  }
 }
 
 export default function AnalysisPage() {
@@ -51,6 +67,7 @@ export default function AnalysisPage() {
   const [resumeText, setResumeText] = useState("")
   const [showResumeText, setShowResumeText] = useState(false)
   const [useSavedProfile, setUseSavedProfile] = useState(false)
+  const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
   const [resumeError, setResumeError] = useState("")
   const [isDragging, setIsDragging] = useState(false)
 
@@ -61,12 +78,27 @@ export default function AnalysisPage() {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
+  const [analysisError, setAnalysisError] = useState("")
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem("kestrel_saved_profile")
+    if (!raw) return
+
+    try {
+      const parsed = JSON.parse(raw) as SavedProfile
+      if (parsed?.resumeText) {
+        setSavedProfile(parsed)
+      }
+    } catch {}
+  }, [])
 
   const jobWordCount = jobDescription.trim().split(/\s+/).filter(Boolean).length
   const resumeWordCount = resumeText.trim().split(/\s+/).filter(Boolean).length
 
   const hasResumeSource =
-    Boolean(resumeFile) || resumeText.trim().length > 0 || useSavedProfile
+    Boolean(resumeFile) ||
+    resumeText.trim().length > 0 ||
+    (useSavedProfile && Boolean(savedProfile?.resumeText))
 
   const canAnalyze = jobDescription.trim().length > 0 && hasResumeSource
 
@@ -74,7 +106,7 @@ export default function AnalysisPage() {
     const extension = file.name.split(".").pop()?.toLowerCase() || ""
 
     if (!ALLOWED_EXTENSIONS.includes(extension)) {
-      setResumeError("Please upload a PDF, DOC, DOCX, or TXT file.")
+      setResumeError("Please upload a PDF, DOCX, or TXT file.")
       return
     }
 
@@ -88,6 +120,7 @@ export default function AnalysisPage() {
     setResumeText("")
     setShowResumeText(false)
     setUseSavedProfile(false)
+    setAnalysisError("")
   }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,8 +171,11 @@ export default function AnalysisPage() {
   }
 
   const handleToggleSavedProfile = () => {
+    if (!savedProfile) return
+
     const nextValue = !useSavedProfile
     setUseSavedProfile(nextValue)
+    setAnalysisError("")
 
     if (nextValue) {
       setResumeFile(null)
@@ -149,11 +185,100 @@ export default function AnalysisPage() {
     }
   }
 
-  const handleAnalyze = useCallback(() => {
-    if (!canAnalyze) return
+  const handleAnalyze = useCallback(async () => {
+    if (!canAnalyze || isAnalyzing) return
+
+    setAnalysisError("")
     setIsAnalyzing(true)
     setCurrentStep(0)
-  }, [canAnalyze])
+
+    const formData = new FormData()
+    formData.append("jobDescription", jobDescription)
+    formData.append("jobUrl", jobUrl)
+    formData.append("targetRole", targetRole)
+    formData.append("timeline", timeline)
+    formData.append("notes", notes)
+
+    if (resumeFile) {
+      formData.append("resumeFile", resumeFile)
+    }
+
+    if (resumeText.trim()) {
+      formData.append("resumeText", resumeText.trim())
+    }
+
+    if (useSavedProfile && savedProfile?.resumeText) {
+      formData.append("savedProfileResumeText", savedProfile.resumeText)
+    }
+
+    const startedAt = Date.now()
+
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        body: formData,
+      })
+      
+      const raw = await response.text()
+      
+      let data: any = null
+      
+      try {
+        data = raw ? JSON.parse(raw) : null
+      } catch {
+        throw new Error(raw || "Server returned a non-JSON response.")
+      }
+      
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to analyze this application.")
+      }
+
+      if (data?.normalizedResumeText) {
+        const nextSavedProfile: SavedProfile = {
+          resumeText: data.normalizedResumeText,
+          updatedAt: new Date().toISOString(),
+        }
+
+        window.localStorage.setItem(
+          "kestrel_saved_profile",
+          JSON.stringify(nextSavedProfile)
+        )
+        setSavedProfile(nextSavedProfile)
+      }
+
+      window.localStorage.setItem("kestrel_last_analysis", JSON.stringify(data))
+
+      const minimumAnimationTime = 2400
+      const elapsed = Date.now() - startedAt
+
+      if (elapsed < minimumAnimationTime) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, minimumAnimationTime - elapsed)
+        )
+      }
+
+      router.push("/dashboard/analysis/results")
+    } catch (error) {
+      setIsAnalyzing(false)
+      setCurrentStep(0)
+      setAnalysisError(
+        error instanceof Error ? error.message : "Failed to run analysis."
+      )
+    }
+  }, [
+    canAnalyze,
+    isAnalyzing,
+    jobDescription,
+    jobUrl,
+    targetRole,
+    timeline,
+    notes,
+    resumeFile,
+    resumeText,
+    useSavedProfile,
+    savedProfile,
+    router,
+  ])
 
   useEffect(() => {
     if (!isAnalyzing) return
@@ -165,15 +290,10 @@ export default function AnalysisPage() {
       })
     }, 850)
 
-    const redirectTimeout = setTimeout(() => {
-      router.push("/dashboard/analysis/results")
-    }, analysisSteps.length * 850 + 900)
-
     return () => {
       clearInterval(interval)
-      clearTimeout(redirectTimeout)
     }
-  }, [isAnalyzing, router])
+  }, [isAnalyzing])
 
   if (isAnalyzing) {
     return (
@@ -360,7 +480,7 @@ Requirements
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.doc,.docx,.txt"
+              accept=".pdf,.docx,.txt"
               className="hidden"
               onChange={handleFileChange}
             />
@@ -386,7 +506,7 @@ Requirements
                     Click to upload or drag and drop
                   </p>
                   <p className="mt-1 text-sm text-[#6B6F8E]">
-                    PDF, DOCX, DOC, or TXT up to 5MB
+                    PDF, DOCX, or TXT up to 5MB
                   </p>
 
                   <div className="mt-4 inline-flex rounded-full bg-[#3C4166]/5 px-3 py-1 text-xs text-[#6B6F8E]">
@@ -461,12 +581,19 @@ Requirements
               )}
             </div>
 
-            <label className="block cursor-pointer rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/60 p-4 transition-all hover:border-[#4FA7A7]/20">
+            <label
+              className={`block rounded-xl border p-4 transition-all ${
+                savedProfile
+                  ? "cursor-pointer border-[#3C4166]/10 bg-[#F6F1E7]/60 hover:border-[#4FA7A7]/20"
+                  : "cursor-not-allowed border-[#3C4166]/10 bg-[#F6F1E7]/40 opacity-70"
+              }`}
+            >
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
                   checked={useSavedProfile}
                   onChange={handleToggleSavedProfile}
+                  disabled={!savedProfile}
                   className="mt-1 h-4 w-4 rounded border-[#3C4166]/20 accent-[#4FA7A7]"
                 />
 
@@ -474,9 +601,16 @@ Requirements
                   <p className="font-medium text-[#3C4166]">
                     Use my saved Kestrel profile instead
                   </p>
-                  <p className="mt-1 text-sm text-[#6B6F8E]">
-                    Your profile was last updated 3 days ago
-                  </p>
+
+                  {savedProfile ? (
+                    <p className="mt-1 text-sm text-[#6B6F8E]">
+                      Last updated {formatSavedDate(savedProfile.updatedAt)}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-[#6B6F8E]">
+                      No saved profile yet. Run one analysis first to save it.
+                    </p>
+                  )}
                 </div>
               </div>
             </label>
@@ -562,6 +696,13 @@ Requirements
           </CardContent>
         )}
       </Card>
+
+      {analysisError && (
+        <div className="mt-6 flex items-center gap-2 rounded-xl border border-[#FF8FA3]/20 bg-[#FF8FA3]/10 p-4">
+          <AlertCircle className="h-4 w-4 text-[#FF8FA3]" />
+          <span className="text-sm text-[#3C4166]">{analysisError}</span>
+        </div>
+      )}
 
       <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-[#3C4166]/10 bg-white/70 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-4 text-sm text-[#6B6F8E]">

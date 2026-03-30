@@ -1,23 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  Target, 
-  TrendingUp, 
-  FileText, 
+import {
+  Target,
+  TrendingUp,
+  FileText,
   CheckCircle2,
   AlertCircle,
-  ArrowRight,
   Download,
   Share2,
   Bookmark,
-  Sparkles,
   ChevronDown,
   ChevronUp,
   Copy,
-  ExternalLink,
   Clock,
   Zap,
   Award,
@@ -26,142 +24,588 @@ import {
   Lightbulb,
   Star,
   BookOpen,
-  Layers
+  Layers,
 } from "lucide-react"
-import Link from "next/link"
 import { cn } from "@/lib/utils"
 
-// Comprehensive analysis data
-const analysisData = {
-  role: "Product Manager",
-  company: "Stripe",
-  readinessScore: 78,
-  confidenceLevel: "High",
-  atsScore: 85,
-  analyzedAt: "Just now",
-  matchSummary: "Strong foundation with excellent cross-functional experience. Key gaps in data/SQL skills and experimentation methodology. High potential with targeted upskilling.",
-  
-  strengths: [
-    { skill: "Product Strategy", level: "Strong", evidence: "Led product roadmap for growth team, 3 successful launches", icon: Target },
-    { skill: "Cross-functional Leadership", level: "Strong", evidence: "Managed eng, design, marketing teams across 5 projects", icon: Briefcase },
-    { skill: "User Research", level: "Advanced", evidence: "Conducted 50+ user interviews, designed research frameworks", icon: Lightbulb },
-    { skill: "Agile/Scrum", level: "Strong", evidence: "Scrum master certified, led 2-week sprint cycles", icon: Zap },
-    { skill: "Stakeholder Management", level: "Strong", evidence: "Regular executive presentations, managed C-suite relationships", icon: Star },
-  ],
-  
+type StrengthWithIcon = {
+  skill: string
+  level: string
+  evidence: string
+  icon: any
+}
+
+type GapItem = {
+  skill: string
+  importance: string
+  currentLevel: number
+  suggestion: string
+}
+
+type ResultsAnalysisData = {
+  role: string
+  company: string
+  readinessScore: number
+  confidenceLevel: string
+  atsScore: number
+  analyzedAt: string
+  matchSummary: string
+  strengths: StrengthWithIcon[]
   skillGaps: {
-    technical: [
-      { skill: "SQL & Data Analysis", importance: "Critical", currentLevel: 45, suggestion: "Complete Mode SQL course and build a dashboard project" },
-      { skill: "A/B Testing & Experimentation", importance: "High", currentLevel: 55, suggestion: "Run an A/B test on a side project and document methodology" },
-    ],
-    productBusiness: [
-      { skill: "Revenue Modeling", importance: "Medium", currentLevel: 60, suggestion: "Create financial models for past product launches" },
-      { skill: "Competitive Analysis", importance: "Medium", currentLevel: 65, suggestion: "Write a competitive analysis document for portfolio" },
-    ],
-    communication: [
-      { skill: "Technical Documentation", importance: "High", currentLevel: 58, suggestion: "Write 2 PRDs for past projects to showcase" },
-    ],
-    toolsPlatforms: [
-      { skill: "Amplitude/Mixpanel", importance: "High", currentLevel: 40, suggestion: "Get Amplitude certification (free)" },
-      { skill: "Figma Basics", importance: "Low", currentLevel: 70, suggestion: "Can communicate with design but limited hands-on" },
-    ]
-  },
-  
+    technical: GapItem[]
+    productBusiness: GapItem[]
+    communication: GapItem[]
+    toolsPlatforms: GapItem[]
+  }
   atsKeywords: {
-    matched: ["product management", "roadmap", "cross-functional", "agile", "user research", "stakeholder management", "product strategy", "sprints", "backlog"],
-    missing: ["SQL", "A/B testing", "data-driven", "metrics", "OKRs", "PRD", "Amplitude", "experimentation", "hypothesis"],
-    score: 85
-  },
-  
-  resumeSuggestions: [
-    { 
-      type: "add", 
-      title: "Quantify impact metrics",
-      current: "Led product launches for growth team",
-      improved: "Led 3 product launches driving 40% user growth and $2M ARR increase",
-      impact: "High"
-    },
-    { 
-      type: "reframe", 
-      title: "Strengthen data narrative",
-      current: "Analyzed user behavior to inform decisions",
-      improved: "Built SQL dashboards analyzing 500K+ user sessions, informing roadmap prioritization",
-      impact: "High"
-    },
-    { 
-      type: "add", 
-      title: "Add experimentation experience",
-      current: null,
-      improved: "Designed and executed 12 A/B tests achieving 15% conversion lift",
-      impact: "Critical"
-    },
-    { 
-      type: "reframe", 
-      title: "Emphasize technical collaboration",
-      current: "Worked with engineering team",
-      improved: "Partnered with 8-person engineering team on technical spec reviews and API design decisions",
-      impact: "Medium"
-    },
-  ],
-  
+    matched: string[]
+    missing: string[]
+    score: number
+  }
+  resumeSuggestions: Array<{
+    type: "add" | "reframe"
+    title: string
+    current: string | null
+    improved: string
+    impact: string
+  }>
   nextSteps: {
-    now: [
-      { action: "Update resume with quantified metrics", effort: "2 hours", impact: "High" },
-      { action: "Add missing ATS keywords to experience section", effort: "1 hour", impact: "High" },
-    ],
-    soon: [
-      { action: "Complete SQL fundamentals course", effort: "2 weeks", impact: "Critical" },
-      { action: "Write 2 PRDs for portfolio", effort: "1 week", impact: "High" },
-      { action: "Get Amplitude certification", effort: "3 days", impact: "Medium" },
-    ],
-    later: [
-      { action: "Run A/B test on side project", effort: "2-3 weeks", impact: "High" },
-      { action: "Build data analysis portfolio project", effort: "2 weeks", impact: "High" },
-    ]
-  },
-  
-  certifications: [
-    { name: "Amplitude Analytics Certification", provider: "Amplitude", time: "3-5 hours", relevance: "High", free: true },
-    { name: "Google Analytics 4", provider: "Google", time: "4-6 hours", relevance: "Medium", free: true },
-    { name: "Product School PM Certification", provider: "Product School", time: "8 weeks", relevance: "High", free: false },
-  ],
-  
-  projectIdeas: [
-    { title: "E-commerce Analytics Dashboard", complexity: "Medium", signal: "High", description: "Build a SQL-powered dashboard showing conversion funnels and user cohorts" },
-    { title: "A/B Testing Case Study", complexity: "Medium", signal: "High", description: "Document an A/B test from hypothesis to results with statistical analysis" },
-    { title: "Product Teardown: Stripe", complexity: "Low", signal: "Medium", description: "Write a detailed analysis of Stripe's product strategy and UX decisions" },
-  ],
-  
+    now: Array<{ action: string; effort: string; impact: string }>
+    soon: Array<{ action: string; effort: string; impact: string }>
+    later: Array<{ action: string; effort: string; impact: string }>
+  }
+  certifications: Array<{
+    name: string
+    provider: string
+    time: string
+    relevance: string
+    free: boolean
+  }>
+  projectIdeas: Array<{
+    title: string
+    complexity: string
+    signal: string
+    description: string
+  }>
   marketSignals: {
-    themes: ["Data-driven decision making", "Cross-functional leadership", "Technical fluency", "Experimentation culture"],
-    expectations: ["3-5 years PM experience", "SQL proficiency", "B2B SaaS background preferred", "Fintech domain knowledge a plus"],
-    salaryRange: "$150K - $200K",
-    demandLevel: "High"
+    themes: string[]
+    expectations: string[]
+    salaryRange: string
+    demandLevel: string
+  }
+  rawNotes: string
+}
+
+type GapBucketKey = "technical" | "productBusiness" | "communication" | "toolsPlatforms"
+type StepBucketKey = "now" | "soon" | "later"
+
+const emptyAnalysisData: ResultsAnalysisData = {
+  role: "Target Role",
+  company: "Unknown",
+  readinessScore: 0,
+  confidenceLevel: "Medium",
+  atsScore: 0,
+  analyzedAt: "Just now",
+  matchSummary: "No analysis available yet.",
+  strengths: [],
+  skillGaps: {
+    technical: [],
+    productBusiness: [],
+    communication: [],
+    toolsPlatforms: [],
+  },
+  atsKeywords: {
+    matched: [],
+    missing: [],
+    score: 0,
+  },
+  resumeSuggestions: [],
+  nextSteps: {
+    now: [],
+    soon: [],
+    later: [],
+  },
+  certifications: [],
+  projectIdeas: [],
+  marketSignals: {
+    themes: [],
+    expectations: [],
+    salaryRange: "Not specified",
+    demandLevel: "Medium",
+  },
+  rawNotes: "",
+}
+
+function clampPercent(value: unknown, fallback = 0) {
+  const num =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : NaN
+
+  if (!Number.isFinite(num)) return fallback
+  return Math.max(0, Math.min(100, Math.round(num)))
+}
+
+function asString(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : fallback
+}
+
+function asStringArray(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .map((item) => item.trim())
+}
+
+function pickStrengthIcon(skill: string) {
+  const value = skill.toLowerCase()
+
+  if (
+    value.includes("strategy") ||
+    value.includes("roadmap") ||
+    value.includes("planning")
+  ) {
+    return Target
+  }
+
+  if (
+    value.includes("stakeholder") ||
+    value.includes("leadership") ||
+    value.includes("management") ||
+    value.includes("cross-functional")
+  ) {
+    return Briefcase
+  }
+
+  if (
+    value.includes("research") ||
+    value.includes("discovery") ||
+    value.includes("insight")
+  ) {
+    return Lightbulb
+  }
+
+  if (
+    value.includes("agile") ||
+    value.includes("scrum") ||
+    value.includes("delivery") ||
+    value.includes("execution")
+  ) {
+    return Zap
+  }
+
+  if (
+    value.includes("data") ||
+    value.includes("analytics") ||
+    value.includes("sql") ||
+    value.includes("metrics")
+  ) {
+    return BarChart3
+  }
+
+  return Star
+}
+
+function gapBucketForSkill(skill: string): GapBucketKey {
+  const value = skill.toLowerCase()
+
+  if (
+    value.includes("jira") ||
+    value.includes("azure") ||
+    value.includes("ado") ||
+    value.includes("smartsheet") ||
+    value.includes("google workspace") ||
+    value.includes("salesforce") ||
+    value.includes("mulesoft") ||
+    value.includes("agentforce") ||
+    value.includes("cloud") ||
+    value.includes("tool") ||
+    value.includes("platform")
+  ) {
+    return "toolsPlatforms"
+  }
+
+  if (
+    value.includes("stakeholder") ||
+    value.includes("communication") ||
+    value.includes("executive") ||
+    value.includes("governance") ||
+    value.includes("documentation") ||
+    value.includes("reporting")
+  ) {
+    return "communication"
+  }
+
+  if (
+    value.includes("budget") ||
+    value.includes("financial") ||
+    value.includes("resource") ||
+    value.includes("planning") ||
+    value.includes("roadmap") ||
+    value.includes("program") ||
+    value.includes("delivery") ||
+    value.includes("agile") ||
+    value.includes("scrum") ||
+    value.includes("safe")
+  ) {
+    return "productBusiness"
+  }
+
+  return "technical"
+}
+
+function defaultCurrentLevel(importance: string) {
+  const normalized = importance.toLowerCase()
+  if (normalized === "critical") return 30
+  if (normalized === "high") return 45
+  if (normalized === "medium") return 60
+  return 75
+}
+
+function normalizeGapItem(item: any): GapItem {
+  const importance = asString(item?.importance, "Medium")
+
+  return {
+    skill: asString(item?.skill, "Gap"),
+    importance,
+    currentLevel: clampPercent(
+      item?.currentLevel,
+      defaultCurrentLevel(importance)
+    ),
+    suggestion: asString(item?.suggestion, "Build more evidence in this area."),
   }
 }
 
+function normalizeSkillGaps(raw: any) {
+  const empty = {
+    technical: [] as GapItem[],
+    productBusiness: [] as GapItem[],
+    communication: [] as GapItem[],
+    toolsPlatforms: [] as GapItem[],
+  }
+
+  if (Array.isArray(raw)) {
+    raw.forEach((item) => {
+      const gap = normalizeGapItem(item)
+      const bucket = gapBucketForSkill(gap.skill)
+      empty[bucket].push(gap)
+    })
+    return empty
+  }
+
+  if (raw && typeof raw === "object") {
+    return {
+      technical: Array.isArray(raw.technical)
+        ? raw.technical.map(normalizeGapItem)
+        : [],
+      productBusiness: Array.isArray(raw.productBusiness)
+        ? raw.productBusiness.map(normalizeGapItem)
+        : [],
+      communication: Array.isArray(raw.communication)
+        ? raw.communication.map(normalizeGapItem)
+        : [],
+      toolsPlatforms: Array.isArray(raw.toolsPlatforms)
+        ? raw.toolsPlatforms.map(normalizeGapItem)
+        : [],
+    }
+  }
+
+  return empty
+}
+
+function normalizeNextSteps(raw: any) {
+  const empty = {
+    now: [] as Array<{ action: string; effort: string; impact: string }>,
+    soon: [] as Array<{ action: string; effort: string; impact: string }>,
+    later: [] as Array<{ action: string; effort: string; impact: string }>,
+  }
+
+  const normalizeStep = (item: any) => ({
+    action: asString(item?.action, "Next step"),
+    effort: asString(item?.effort, "Medium"),
+    impact: asString(item?.impact, "Medium"),
+  })
+
+  const inferBucket = (action: string, effort: string): StepBucketKey => {
+    const value = `${action} ${effort}`.toLowerCase()
+
+    if (value.includes("hour") || value.includes("today") || value.includes("now")) {
+      return "now"
+    }
+
+    if (value.includes("day") || value.includes("week") || value.includes("soon")) {
+      return "soon"
+    }
+
+    return "later"
+  }
+
+  if (Array.isArray(raw)) {
+    raw.forEach((item) => {
+      const step = normalizeStep(item)
+      const bucket = inferBucket(step.action, step.effort)
+      empty[bucket].push(step)
+    })
+    return empty
+  }
+
+  if (raw && typeof raw === "object") {
+    return {
+      now: Array.isArray(raw.now) ? raw.now.map(normalizeStep) : [],
+      soon: Array.isArray(raw.soon) ? raw.soon.map(normalizeStep) : [],
+      later: Array.isArray(raw.later) ? raw.later.map(normalizeStep) : [],
+    }
+  }
+
+  return empty
+}
+
+function normalizeResultsAnalysis(raw: any): ResultsAnalysisData {
+  const source = raw?.analysis ?? raw ?? {}
+  const atsScore = clampPercent(source?.atsScore ?? source?.atsKeywords?.score, 0)
+
+  return {
+    role: asString(source?.role, emptyAnalysisData.role),
+    company: asString(source?.company, emptyAnalysisData.company),
+    readinessScore: clampPercent(
+      source?.readinessScore,
+      emptyAnalysisData.readinessScore
+    ),
+    confidenceLevel: asString(
+      source?.confidenceLevel,
+      emptyAnalysisData.confidenceLevel
+    ),
+    atsScore,
+    analyzedAt: asString(source?.analyzedAt, emptyAnalysisData.analyzedAt),
+    matchSummary: asString(
+      source?.matchSummary,
+      emptyAnalysisData.matchSummary
+    ),
+    strengths: Array.isArray(source?.strengths)
+      ? source.strengths.map((item: any) => ({
+          skill: asString(item?.skill, "Strength"),
+          level: asString(item?.level, "Strong"),
+          evidence: asString(item?.evidence, "Relevant experience found."),
+          icon: pickStrengthIcon(asString(item?.skill, "")),
+        }))
+      : [],
+    skillGaps: normalizeSkillGaps(source?.skillGaps),
+    atsKeywords: {
+      matched: asStringArray(source?.atsKeywords?.matched),
+      missing: asStringArray(source?.atsKeywords?.missing),
+      score: atsScore,
+    },
+    resumeSuggestions: Array.isArray(source?.resumeSuggestions)
+      ? source.resumeSuggestions.map((item: any) => ({
+          type:
+            asString(item?.type, "add").toLowerCase() === "reframe"
+              ? "reframe"
+              : "add",
+          title: asString(item?.title, "Resume improvement"),
+          current:
+            typeof item?.current === "string" && item.current.trim().length > 0
+              ? item.current.trim()
+              : null,
+          improved: asString(item?.improved, "Suggested rewrite"),
+          impact: asString(item?.impact, "Medium"),
+        }))
+      : [],
+    nextSteps: normalizeNextSteps(source?.nextSteps),
+    certifications: Array.isArray(source?.certifications)
+      ? source.certifications.map((item: any) => ({
+          name: asString(item?.name, "Recommended certification"),
+          provider: asString(item?.provider, "Recommended provider"),
+          time: asString(item?.time, "Varies"),
+          relevance: asString(item?.relevance, "Medium"),
+          free: Boolean(item?.free),
+        }))
+      : [],
+    projectIdeas: Array.isArray(source?.projectIdeas)
+      ? source.projectIdeas.map((item: any) => ({
+          title: asString(item?.title, "Portfolio project"),
+          complexity: asString(item?.complexity, "Medium"),
+          signal: asString(item?.signal, "Medium"),
+          description: asString(
+            item?.description,
+            "A project idea relevant to this role."
+          ),
+        }))
+      : [],
+    marketSignals: {
+      themes: asStringArray(source?.marketSignals?.themes),
+      expectations: asStringArray(source?.marketSignals?.expectations),
+      salaryRange: asString(
+        source?.marketSignals?.salaryRange,
+        emptyAnalysisData.marketSignals.salaryRange
+      ),
+      demandLevel: asString(
+        source?.marketSignals?.demandLevel,
+        emptyAnalysisData.marketSignals.demandLevel
+      ),
+    },
+    rawNotes: asString(source?.rawNotes, ""),
+  }
+}
+
+function getImportanceBadgeClass(value: string) {
+  const normalized = value.toLowerCase()
+
+  if (normalized === "critical") {
+    return "bg-[#FF8FA3]/20 text-[#FF8FA3]"
+  }
+
+  if (normalized === "high") {
+    return "bg-[#E87BF1]/20 text-[#E87BF1]"
+  }
+
+  if (normalized === "medium") {
+    return "bg-[#7ED7F7]/20 text-[#4FA7A7]"
+  }
+
+  return "bg-[#3C4166]/10 text-[#6B6F8E]"
+}
+
+function getImpactBadgeClass(value: string) {
+  const normalized = value.toLowerCase()
+
+  if (normalized === "critical") {
+    return "bg-[#FF8FA3]/20 text-[#FF8FA3]"
+  }
+
+  if (normalized === "high") {
+    return "bg-[#E87BF1]/20 text-[#E87BF1]"
+  }
+
+  if (normalized === "medium") {
+    return "bg-[#7ED7F7]/20 text-[#4FA7A7]"
+  }
+
+  return "bg-[#3C4166]/10 text-[#6B6F8E]"
+}
+
+function getCategoryDotClass(key: GapBucketKey) {
+  if (key === "technical") return "from-[#FF8FA3] to-[#F7C7D4]"
+  if (key === "productBusiness") return "from-[#E87BF1] to-[#C9B6E4]"
+  if (key === "communication") return "from-[#7ED7F7] to-[#4FA7A7]"
+  return "from-[#C9B6E4] to-[#F7C7D4]"
+}
+
+const gapCategories: Array<{
+  key: GapBucketKey
+  label: string
+}> = [
+  { key: "technical", label: "Technical Skills" },
+  { key: "productBusiness", label: "Product & Business" },
+  { key: "communication", label: "Communication" },
+  { key: "toolsPlatforms", label: "Tools & Platforms" },
+]
+
+const nextStepBuckets: Array<{
+  key: StepBucketKey
+  label: string
+  sublabel: string
+  dotClass: string
+}> = [
+  {
+    key: "now",
+    label: "Do Now",
+    sublabel: "Quick wins",
+    dotClass: "bg-[#4FA7A7]",
+  },
+  {
+    key: "soon",
+    label: "Do Soon",
+    sublabel: "This week",
+    dotClass: "bg-[#E87BF1]",
+  },
+  {
+    key: "later",
+    label: "Do Later",
+    sublabel: "This month",
+    dotClass: "bg-[#7ED7F7]",
+  },
+]
+
 export default function AnalysisResultsPage() {
-  const [expandedGaps, setExpandedGaps] = useState<string[]>(["technical"])
+  const [analysisData, setAnalysisData] = useState<ResultsAnalysisData | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [expandedGaps, setExpandedGaps] = useState<GapBucketKey[]>(["technical"])
   const [savedSuggestions, setSavedSuggestions] = useState<number[]>([])
 
-  const toggleGapCategory = (category: string) => {
-    setExpandedGaps(prev => 
-      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("kestrel_last_analysis")
+
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setAnalysisData(normalizeResultsAnalysis(parsed))
+      }
+    } catch (error) {
+      console.error("Failed to load saved analysis:", error)
+    } finally {
+      setIsLoaded(true)
+    }
+  }, [])
+
+  const toggleGapCategory = (category: GapBucketKey) => {
+    setExpandedGaps((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
+    )
+  }
+
+  const handleCopySuggestion = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setSavedSuggestions((prev) =>
+        prev.includes(index) ? prev : [...prev, index]
+      )
+    } catch (error) {
+      console.error("Failed to copy suggestion:", error)
+    }
+  }
+
+  if (!isLoaded) {
+    return null
+  }
+
+  if (!analysisData) {
+    return (
+      <div className="pb-20 lg:pb-0">
+        <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+          <CardContent className="py-16 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4FA7A7]/20 to-[#E87BF1]/20">
+              <AlertCircle className="h-6 w-6 text-[#E87BF1]" />
+            </div>
+            <h1 className="mb-2 text-2xl font-semibold text-[#3C4166]">
+              No saved analysis found
+            </h1>
+            <p className="mx-auto mb-6 max-w-md text-sm text-[#6B6F8E]">
+              Run a new analysis first so this page can display your real AI output.
+            </p>
+            <Link href="/dashboard/analysis">
+              <Button className="bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7] text-white hover:opacity-90">
+                Start New Analysis
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   return (
     <div className="pb-20 lg:pb-0">
-      {/* Hero Card - Primary Focal Point */}
       <Card className="mb-8 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm border-[#3C4166]/10 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#4FA7A7]/10 via-[#7ED7F7]/10 to-[#C9B6E4]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <CardContent className="pt-8 pb-8 relative">
-          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-            {/* Left: Score & Info */}
+        <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-gradient-to-br from-[#4FA7A7]/10 via-[#7ED7F7]/10 to-[#C9B6E4]/10 blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <CardContent className="relative pt-8 pb-8">
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
             <div className="flex items-start gap-6">
-              {/* Radial Score */}
               <div className="relative flex-shrink-0">
-                <svg className="w-32 h-32 -rotate-90">
+                <svg className="h-32 w-32 -rotate-90">
                   <circle
                     cx="64"
                     cy="64"
@@ -189,43 +633,60 @@ export default function AnalysisResultsPage() {
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-4xl font-bold text-[#3C4166]">{analysisData.readinessScore}</span>
+                  <span className="text-4xl font-bold text-[#3C4166]">
+                    {analysisData.readinessScore}
+                  </span>
                   <span className="text-xs text-[#6B6F8E]">Readiness</span>
                 </div>
               </div>
 
-              {/* Role & Summary */}
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2.5 py-1 rounded-full bg-[#4FA7A7]/10 text-[#4FA7A7] text-xs font-medium">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[#4FA7A7]/10 px-2.5 py-1 text-xs font-medium text-[#4FA7A7]">
                     {analysisData.confidenceLevel} Confidence
                   </span>
-                  <span className="px-2.5 py-1 rounded-full bg-[#C9B6E4]/20 text-[#6B6F8E] text-xs">
+                  <span className="rounded-full bg-[#C9B6E4]/20 px-2.5 py-1 text-xs text-[#6B6F8E]">
                     {analysisData.analyzedAt}
                   </span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-semibold text-[#3C4166] mb-1">
+
+                <h1 className="mb-1 text-2xl font-semibold text-[#3C4166] sm:text-3xl">
                   {analysisData.role}
                 </h1>
-                <p className="text-lg text-[#6B6F8E] mb-4">at {analysisData.company}</p>
-                <p className="text-sm text-[#6B6F8E] leading-relaxed max-w-xl">
+
+                <p className="mb-4 text-lg text-[#6B6F8E]">
+                  at {analysisData.company}
+                </p>
+
+                <p className="max-w-xl text-sm leading-relaxed text-[#6B6F8E]">
                   {analysisData.matchSummary}
                 </p>
               </div>
             </div>
 
-            {/* Right: Quick Actions */}
-            <div className="flex flex-wrap lg:flex-col gap-2">
-              <Button variant="outline" size="sm" className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5">
-                <Bookmark className="h-4 w-4 mr-2" />
+            <div className="flex flex-wrap gap-2 lg:flex-col">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+              >
+                <Bookmark className="mr-2 h-4 w-4" />
                 Save Analysis
               </Button>
-              <Button variant="outline" size="sm" className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5">
-                <Download className="h-4 w-4 mr-2" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+              >
+                <Download className="mr-2 h-4 w-4" />
                 Export PDF
               </Button>
-              <Button variant="outline" size="sm" className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5">
-                <Share2 className="h-4 w-4 mr-2" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+              >
+                <Share2 className="mr-2 h-4 w-4" />
                 Compare
               </Button>
             </div>
@@ -233,142 +694,303 @@ export default function AnalysisResultsPage() {
         </CardContent>
       </Card>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Column 1-2: Primary Content */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Strengths Card */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#C8F5DF] to-[#4FA7A7]/30 flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C8F5DF] to-[#4FA7A7]/30">
                     <CheckCircle2 className="h-5 w-5 text-[#4FA7A7]" />
                   </div>
                   <div>
                     <CardTitle className="text-lg text-[#3C4166]">Your Strengths</CardTitle>
-                    <CardDescription className="text-[#6B6F8E]">What you already bring to this role</CardDescription>
+                    <CardDescription className="text-[#6B6F8E]">
+                      What you already bring to this role
+                    </CardDescription>
                   </div>
                 </div>
-                <span className="text-sm font-medium text-[#4FA7A7]">{analysisData.strengths.length} matched</span>
+                <span className="text-sm font-medium text-[#4FA7A7]">
+                  {analysisData.strengths.length} matched
+                </span>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {analysisData.strengths.map((strength) => {
-                  const Icon = strength.icon
-                  return (
-                    <div 
-                      key={strength.skill}
-                      className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-[#C8F5DF]/30 to-transparent border border-[#4FA7A7]/10"
-                    >
-                      <div className="h-10 w-10 rounded-xl bg-[#4FA7A7]/10 flex items-center justify-center flex-shrink-0">
-                        <Icon className="h-5 w-5 text-[#4FA7A7]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <h4 className="font-medium text-[#3C4166]">{strength.skill}</h4>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-[#C8F5DF] text-[#4FA7A7] flex-shrink-0">
-                            {strength.level}
-                          </span>
+              {analysisData.strengths.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-6 text-sm text-[#6B6F8E]">
+                  No strengths returned yet.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {analysisData.strengths.map((strength) => {
+                    const Icon = strength.icon
+                    return (
+                      <div
+                        key={strength.skill}
+                        className="flex items-start gap-4 rounded-xl border border-[#4FA7A7]/10 bg-gradient-to-r from-[#C8F5DF]/30 to-transparent p-4"
+                      >
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#4FA7A7]/10">
+                          <Icon className="h-5 w-5 text-[#4FA7A7]" />
                         </div>
-                        <p className="text-sm text-[#6B6F8E]">{strength.evidence}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <h4 className="font-medium text-[#3C4166]">{strength.skill}</h4>
+                            <span className="rounded-full bg-[#C8F5DF] px-2 py-0.5 text-xs text-[#4FA7A7]">
+                              {strength.level}
+                            </span>
+                          </div>
+                          <p className="text-sm text-[#6B6F8E]">{strength.evidence}</p>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Skill Gaps Card */}
           <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#FF8FA3]/20 to-[#E87BF1]/20 flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8FA3]/20 to-[#E87BF1]/20">
                   <TrendingUp className="h-5 w-5 text-[#E87BF1]" />
                 </div>
                 <div>
                   <CardTitle className="text-lg text-[#3C4166]">Skill Gaps to Address</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">Organized by category for focused improvement</CardDescription>
+                  <CardDescription className="text-[#6B6F8E]">
+                    Organized by category for focused improvement
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4">
-              {Object.entries(analysisData.skillGaps).map(([category, gaps]) => {
-                const isExpanded = expandedGaps.includes(category)
-                const categoryLabels: Record<string, string> = {
-                  technical: "Technical Skills",
-                  productBusiness: "Product & Business",
-                  communication: "Communication",
-                  toolsPlatforms: "Tools & Platforms"
-                }
-                const categoryColors: Record<string, string> = {
-                  technical: "from-[#FF8FA3] to-[#F7C7D4]",
-                  productBusiness: "from-[#E87BF1] to-[#C9B6E4]",
-                  communication: "from-[#7ED7F7] to-[#4FA7A7]",
-                  toolsPlatforms: "from-[#C9B6E4] to-[#F7C7D4]"
-                }
+              {gapCategories.map((category) => {
+                const gaps = analysisData.skillGaps[category.key]
+                const isExpanded = expandedGaps.includes(category.key)
+
                 return (
-                  <div key={category} className="border border-[#3C4166]/10 rounded-xl overflow-hidden">
+                  <div
+                    key={category.key}
+                    className="overflow-hidden rounded-xl border border-[#3C4166]/10"
+                  >
                     <button
-                      onClick={() => toggleGapCategory(category)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-[#F6F1E7]/50 transition-colors"
+                      onClick={() => toggleGapCategory(category.key)}
+                      className="flex w-full items-center justify-between p-4 transition-colors hover:bg-[#F6F1E7]/50"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={cn("h-2 w-2 rounded-full bg-gradient-to-r", categoryColors[category])} />
-                        <span className="font-medium text-[#3C4166]">{categoryLabels[category]}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#3C4166]/10 text-[#6B6F8E]">
+                        <div
+                          className={cn(
+                            "h-2 w-2 rounded-full bg-gradient-to-r",
+                            getCategoryDotClass(category.key)
+                          )}
+                        />
+                        <span className="font-medium text-[#3C4166]">{category.label}</span>
+                        <span className="rounded-full bg-[#3C4166]/10 px-2 py-0.5 text-xs text-[#6B6F8E]">
                           {gaps.length} gaps
                         </span>
                       </div>
+
                       {isExpanded ? (
                         <ChevronUp className="h-5 w-5 text-[#6B6F8E]" />
                       ) : (
                         <ChevronDown className="h-5 w-5 text-[#6B6F8E]" />
                       )}
                     </button>
+
                     {isExpanded && (
-                      <div className="px-4 pb-4 space-y-3">
-                        {gaps.map((gap) => (
-                          <div key={gap.skill} className="p-4 rounded-xl bg-[#F6F1E7]/50">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="font-medium text-[#3C4166]">{gap.skill}</h4>
-                              <span className={cn(
-                                "text-xs px-2 py-0.5 rounded-full",
-                                gap.importance === "Critical" 
-                                  ? "bg-[#FF8FA3]/20 text-[#FF8FA3]"
-                                  : gap.importance === "High"
-                                    ? "bg-[#E87BF1]/20 text-[#E87BF1]"
-                                    : "bg-[#7ED7F7]/20 text-[#4FA7A7]"
-                              )}>
-                                {gap.importance}
+                      <div className="space-y-3 px-4 pb-4">
+                        {gaps.length === 0 ? (
+                          <div className="rounded-xl bg-[#F6F1E7]/40 p-4 text-sm text-[#6B6F8E]">
+                            No gaps returned in this category.
+                          </div>
+                        ) : (
+                          gaps.map((gap) => (
+                            <div key={gap.skill} className="rounded-xl bg-[#F6F1E7]/50 p-4">
+                              <div className="mb-3 flex items-center justify-between">
+                                <h4 className="font-medium text-[#3C4166]">{gap.skill}</h4>
+                                <span
+                                  className={cn(
+                                    "rounded-full px-2 py-0.5 text-xs",
+                                    getImportanceBadgeClass(gap.importance)
+                                  )}
+                                >
+                                  {gap.importance}
+                                </span>
+                              </div>
+
+                              <div className="mb-3">
+                                <div className="mb-1 flex justify-between text-xs text-[#6B6F8E]">
+                                  <span>Current Level</span>
+                                  <span>{gap.currentLevel}%</span>
+                                </div>
+                                <div className="h-2 overflow-hidden rounded-full bg-[#3C4166]/10">
+                                  <div
+                                    className={cn(
+                                      "h-full rounded-full bg-gradient-to-r",
+                                      gap.currentLevel < 50
+                                        ? "from-[#FF8FA3] to-[#F7C7D4]"
+                                        : gap.currentLevel < 70
+                                          ? "from-[#E87BF1] to-[#C9B6E4]"
+                                          : "from-[#4FA7A7] to-[#7ED7F7]"
+                                    )}
+                                    style={{ width: `${gap.currentLevel}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              <p className="text-sm text-[#6B6F8E]">
+                                <span className="font-medium text-[#3C4166]">Action:</span>{" "}
+                                {gap.suggestion}
+                              </p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#E87BF1]/20 to-[#C9B6E4]/20">
+                  <FileText className="h-5 w-5 text-[#E87BF1]" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-[#3C4166]">Resume Upgrade Suggestions</CardTitle>
+                  <CardDescription className="text-[#6B6F8E]">
+                    Before vs after improvements
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              {analysisData.resumeSuggestions.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-6 text-sm text-[#6B6F8E]">
+                  No resume suggestions returned yet.
+                </div>
+              ) : (
+                analysisData.resumeSuggestions.map((suggestion, index) => (
+                  <div
+                    key={`${suggestion.title}-${index}`}
+                    className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-xs",
+                            suggestion.type === "reframe"
+                              ? "bg-[#7ED7F7]/20 text-[#4FA7A7]"
+                              : "bg-[#C8F5DF] text-[#4FA7A7]"
+                          )}
+                        >
+                          {suggestion.type === "reframe" ? "Reframe" : "Add"}
+                        </span>
+                        <h4 className="font-medium text-[#3C4166]">{suggestion.title}</h4>
+                      </div>
+
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-0.5 text-xs",
+                          getImpactBadgeClass(suggestion.impact)
+                        )}
+                      >
+                        {suggestion.impact} Impact
+                      </span>
+                    </div>
+
+                    {suggestion.current && (
+                      <p className="mb-2 text-sm text-[#6B6F8E]">
+                        <span className="font-medium text-[#FF8FA3]">Before:</span>{" "}
+                        <span className="line-through">{suggestion.current}</span>
+                      </p>
+                    )}
+
+                    <p className="mb-3 text-sm text-[#6B6F8E]">
+                      <span className="font-medium text-[#4FA7A7]">After:</span>{" "}
+                      <span className="font-medium text-[#3C4166]">
+                        {suggestion.improved}
+                      </span>
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopySuggestion(suggestion.improved, index)}
+                      className="inline-flex items-center gap-2 text-xs text-[#6B6F8E] transition-colors hover:text-[#3C4166]"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {savedSuggestions.includes(index) ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7ED7F7]/20 to-[#4FA7A7]/20">
+                  <Clock className="h-5 w-5 text-[#4FA7A7]" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-[#3C4166]">Next Steps Strategy</CardTitle>
+                  <CardDescription className="text-[#6B6F8E]">
+                    Prioritized actions to improve your match
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              {nextStepBuckets.map((bucket) => {
+                const items = analysisData.nextSteps[bucket.key]
+
+                return (
+                  <div key={bucket.key}>
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className={cn("h-3 w-3 rounded-full", bucket.dotClass)} />
+                      <h4 className="font-medium text-[#3C4166]">{bucket.label}</h4>
+                      <span className="text-xs text-[#6B6F8E]">{bucket.sublabel}</span>
+                    </div>
+
+                    {items.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-4 text-sm text-[#6B6F8E]">
+                        No actions returned in this bucket.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {items.map((item, index) => (
+                          <div
+                            key={`${item.action}-${index}`}
+                            className={cn(
+                              "flex items-center justify-between gap-4 rounded-xl px-4 py-3",
+                              bucket.key === "now" && "bg-[#C8F5DF]/30",
+                              bucket.key === "soon" && "bg-[#F3E3F9]/60",
+                              bucket.key === "later" && "bg-[#E8F6FB]/80"
+                            )}
+                          >
+                            <p className="text-sm text-[#3C4166]">{item.action}</p>
+                            <div className="flex items-center gap-3 text-xs text-[#6B6F8E]">
+                              <span className="inline-flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {item.effort}
+                              </span>
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-0.5",
+                                  getImpactBadgeClass(item.impact)
+                                )}
+                              >
+                                {item.impact}
                               </span>
                             </div>
-                            <div className="mb-3">
-                              <div className="flex justify-between text-xs text-[#6B6F8E] mb-1">
-                                <span>Current Level</span>
-                                <span>{gap.currentLevel}%</span>
-                              </div>
-                              <div className="h-2 rounded-full bg-[#3C4166]/10 overflow-hidden">
-                                <div 
-                                  className={cn(
-                                    "h-full rounded-full bg-gradient-to-r",
-                                    gap.currentLevel < 50 
-                                      ? "from-[#FF8FA3] to-[#F7C7D4]"
-                                      : gap.currentLevel < 70
-                                        ? "from-[#E87BF1] to-[#C9B6E4]"
-                                        : "from-[#4FA7A7] to-[#7ED7F7]"
-                                  )}
-                                  style={{ width: `${gap.currentLevel}%` }}
-                                />
-                              </div>
-                            </div>
-                            <p className="text-sm text-[#6B6F8E]">
-                              <span className="font-medium text-[#3C4166]">Action:</span> {gap.suggestion}
-                            </p>
                           </div>
                         ))}
                       </div>
@@ -379,383 +1001,250 @@ export default function AnalysisResultsPage() {
             </CardContent>
           </Card>
 
-          {/* Resume Upgrade Suggestions */}
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#F7C7D4]/50 to-[#E87BF1]/20 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-[#E87BF1]" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Resume Upgrade Suggestions</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">Before vs after improvements</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {analysisData.resumeSuggestions.map((suggestion, i) => (
-                <div 
-                  key={i}
-                  className="p-4 rounded-xl bg-[#F6F1E7]/50 border border-[#3C4166]/5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "text-xs px-2 py-0.5 rounded-full",
-                        suggestion.type === "add"
-                          ? "bg-[#C8F5DF] text-[#4FA7A7]"
-                          : "bg-[#7ED7F7]/20 text-[#4FA7A7]"
-                      )}>
-                        {suggestion.type === "add" ? "Add" : "Reframe"}
-                      </span>
-                      <span className="text-sm font-medium text-[#3C4166]">{suggestion.title}</span>
-                    </div>
-                    <span className={cn(
-                      "text-xs px-2 py-0.5 rounded-full",
-                      suggestion.impact === "Critical"
-                        ? "bg-[#FF8FA3]/20 text-[#FF8FA3]"
-                        : suggestion.impact === "High"
-                          ? "bg-[#E87BF1]/20 text-[#E87BF1]"
-                          : "bg-[#3C4166]/10 text-[#6B6F8E]"
-                    )}>
-                      {suggestion.impact} Impact
-                    </span>
+          {analysisData.rawNotes && (
+            <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C9B6E4]/20 to-[#7ED7F7]/20">
+                    <Lightbulb className="h-5 w-5 text-[#6B6F8E]" />
                   </div>
-                  <div className="space-y-2">
-                    {suggestion.current && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs text-[#FF8FA3] mt-1">Before:</span>
-                        <p className="text-sm text-[#6B6F8E] line-through">{suggestion.current}</p>
-                      </div>
-                    )}
-                    <div className="flex items-start gap-2">
-                      <span className="text-xs text-[#4FA7A7] mt-1">After:</span>
-                      <p className="text-sm text-[#3C4166] font-medium">{suggestion.improved}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-[#4FA7A7] hover:text-[#4FA7A7] hover:bg-[#4FA7A7]/10 h-8"
-                      onClick={() => {
-                        navigator.clipboard.writeText(suggestion.improved)
-                        setSavedSuggestions(prev => [...prev, i])
-                      }}
-                    >
-                      <Copy className="h-3.5 w-3.5 mr-1.5" />
-                      {savedSuggestions.includes(i) ? "Copied!" : "Copy"}
-                    </Button>
+                  <div>
+                    <CardTitle className="text-lg text-[#3C4166]">Extra Notes</CardTitle>
+                    <CardDescription className="text-[#6B6F8E]">
+                      Additional analysis context
+                    </CardDescription>
                   </div>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Next Steps Strategy */}
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#4FA7A7]/20 to-[#7ED7F7]/20 flex items-center justify-center">
-                  <Layers className="h-5 w-5 text-[#4FA7A7]" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Next Steps Strategy</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">Prioritized actions to improve your match</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Now */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-full bg-[#4FA7A7] flex items-center justify-center">
-                      <Zap className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <h4 className="font-semibold text-[#3C4166]">Do Now</h4>
-                    <span className="text-xs text-[#6B6F8E]">Quick wins</span>
-                  </div>
-                  <div className="space-y-2 ml-8">
-                    {analysisData.nextSteps.now.map((step, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[#C8F5DF]/20 border border-[#4FA7A7]/10">
-                        <span className="text-sm text-[#3C4166]">{step.action}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-[#6B6F8E] flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {step.effort}
-                          </span>
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            step.impact === "High" ? "bg-[#E87BF1]/20 text-[#E87BF1]" : "bg-[#3C4166]/10 text-[#6B6F8E]"
-                          )}>
-                            {step.impact}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Soon */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-full bg-[#E87BF1] flex items-center justify-center">
-                      <Clock className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <h4 className="font-semibold text-[#3C4166]">Do Soon</h4>
-                    <span className="text-xs text-[#6B6F8E]">This week</span>
-                  </div>
-                  <div className="space-y-2 ml-8">
-                    {analysisData.nextSteps.soon.map((step, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[#E87BF1]/10 border border-[#E87BF1]/10">
-                        <span className="text-sm text-[#3C4166]">{step.action}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-[#6B6F8E] flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {step.effort}
-                          </span>
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            step.impact === "Critical" 
-                              ? "bg-[#FF8FA3]/20 text-[#FF8FA3]"
-                              : step.impact === "High" 
-                                ? "bg-[#E87BF1]/20 text-[#E87BF1]" 
-                                : "bg-[#3C4166]/10 text-[#6B6F8E]"
-                          )}>
-                            {step.impact}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Later */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-6 w-6 rounded-full bg-[#7ED7F7] flex items-center justify-center">
-                      <Target className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <h4 className="font-semibold text-[#3C4166]">Do Later</h4>
-                    <span className="text-xs text-[#6B6F8E]">This month</span>
-                  </div>
-                  <div className="space-y-2 ml-8">
-                    {analysisData.nextSteps.later.map((step, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-[#7ED7F7]/10 border border-[#7ED7F7]/10">
-                        <span className="text-sm text-[#3C4166]">{step.action}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-[#6B6F8E] flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {step.effort}
-                          </span>
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            step.impact === "High" ? "bg-[#E87BF1]/20 text-[#E87BF1]" : "bg-[#3C4166]/10 text-[#6B6F8E]"
-                          )}>
-                            {step.impact}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm leading-relaxed text-[#6B6F8E]">
+                  {analysisData.rawNotes}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {/* Column 3: Supporting Content */}
         <div className="space-y-6">
-          
-          {/* ATS Keywords Card */}
           <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#7ED7F7]/30 to-[#4FA7A7]/20 flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7ED7F7]/20 to-[#4FA7A7]/20">
                     <BarChart3 className="h-5 w-5 text-[#4FA7A7]" />
                   </div>
                   <div>
                     <CardTitle className="text-lg text-[#3C4166]">ATS Score</CardTitle>
-                    <CardDescription className="text-[#6B6F8E]">Keyword alignment</CardDescription>
+                    <CardDescription className="text-[#6B6F8E]">
+                      Keyword alignment
+                    </CardDescription>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-2xl font-bold text-[#4FA7A7]">{analysisData.atsKeywords.score}%</span>
-                </div>
+                <span className="text-2xl font-semibold text-[#4FA7A7]">
+                  {analysisData.atsKeywords.score}%
+                </span>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-[#3C4166] mb-2 flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[#4FA7A7]" />
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6B6F8E]">
                   Found in Resume
-                </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {analysisData.atsKeywords.matched.map((keyword) => (
-                    <span 
-                      key={keyword}
-                      className="text-xs px-2 py-1 rounded-full bg-[#C8F5DF]/50 text-[#4FA7A7] border border-[#4FA7A7]/10"
-                    >
-                      {keyword}
-                    </span>
-                  ))}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {analysisData.atsKeywords.matched.length === 0 ? (
+                    <span className="text-sm text-[#6B6F8E]">No matched keywords returned.</span>
+                  ) : (
+                    analysisData.atsKeywords.matched.map((keyword) => (
+                      <span
+                        key={keyword}
+                        className="rounded-full bg-[#C8F5DF]/70 px-2.5 py-1 text-xs text-[#4FA7A7]"
+                      >
+                        {keyword}
+                      </span>
+                    ))
+                  )}
                 </div>
               </div>
+
               <div>
-                <h4 className="text-sm font-medium text-[#3C4166] mb-2 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-[#FF8FA3]" />
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6B6F8E]">
                   Missing Keywords
-                </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {analysisData.atsKeywords.missing.map((keyword) => (
-                    <span 
-                      key={keyword}
-                      className="text-xs px-2 py-1 rounded-full bg-[#FF8FA3]/10 text-[#FF8FA3] border border-[#FF8FA3]/10"
-                    >
-                      + {keyword}
-                    </span>
-                  ))}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {analysisData.atsKeywords.missing.length === 0 ? (
+                    <span className="text-sm text-[#6B6F8E]">No missing keywords returned.</span>
+                  ) : (
+                    analysisData.atsKeywords.missing.map((keyword) => (
+                      <span
+                        key={keyword}
+                        className="rounded-full bg-[#FF8FA3]/15 px-2.5 py-1 text-xs text-[#FF8FA3]"
+                      >
+                        {keyword}
+                      </span>
+                    ))
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Certifications Card */}
           <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#C9B6E4]/30 to-[#E87BF1]/20 flex items-center justify-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#E87BF1]/20 to-[#C9B6E4]/20">
                   <Award className="h-5 w-5 text-[#E87BF1]" />
                 </div>
                 <div>
                   <CardTitle className="text-lg text-[#3C4166]">Certifications</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">Recommended credentials</CardDescription>
+                  <CardDescription className="text-[#6B6F8E]">
+                    Recommended credentials
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-3">
-              {analysisData.certifications.map((cert) => (
-                <div 
-                  key={cert.name}
-                  className="p-3 rounded-xl bg-[#F6F1E7]/50 border border-[#3C4166]/5"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="text-sm font-medium text-[#3C4166]">{cert.name}</h4>
-                    {cert.free && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#C8F5DF] text-[#4FA7A7]">
-                        Free
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-[#6B6F8E] mb-2">{cert.provider}</p>
-                  <div className="flex items-center gap-3 text-xs text-[#6B6F8E]">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {cert.time}
-                    </span>
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-full",
-                      cert.relevance === "High" 
-                        ? "bg-[#E87BF1]/20 text-[#E87BF1]"
-                        : "bg-[#3C4166]/10"
-                    )}>
-                      {cert.relevance} relevance
-                    </span>
-                  </div>
+              {analysisData.certifications.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-4 text-sm text-[#6B6F8E]">
+                  No certification suggestions returned.
                 </div>
-              ))}
+              ) : (
+                analysisData.certifications.map((cert, index) => (
+                  <div
+                    key={`${cert.name}-${index}`}
+                    className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
+                  >
+                    <div className="mb-1 flex items-start justify-between gap-3">
+                      <h4 className="font-medium text-[#3C4166]">{cert.name}</h4>
+                      {cert.free && (
+                        <span className="rounded-full bg-[#C8F5DF] px-2 py-0.5 text-xs text-[#4FA7A7]">
+                          Free
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-[#6B6F8E]">{cert.provider}</p>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-[#6B6F8E]">
+                      <span>{cert.time}</span>
+                      <span className="rounded-full bg-[#C9B6E4]/20 px-2 py-0.5">
+                        {cert.relevance} relevance
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
-          {/* Project Ideas Card */}
           <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#F7C7D4]/50 to-[#FF8FA3]/20 flex items-center justify-center">
-                  <Briefcase className="h-5 w-5 text-[#FF8FA3]" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8FA3]/20 to-[#F7C7D4]/20">
+                  <BookOpen className="h-5 w-5 text-[#FF8FA3]" />
                 </div>
                 <div>
                   <CardTitle className="text-lg text-[#3C4166]">Project Ideas</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">Portfolio suggestions</CardDescription>
+                  <CardDescription className="text-[#6B6F8E]">
+                    Portfolio suggestions
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-3">
-              {analysisData.projectIdeas.map((project) => (
-                <div 
-                  key={project.title}
-                  className="p-3 rounded-xl bg-[#F6F1E7]/50 border border-[#3C4166]/5"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-medium text-[#3C4166]">{project.title}</h4>
-                  </div>
-                  <p className="text-xs text-[#6B6F8E] mb-2">{project.description}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#3C4166]/10 text-[#6B6F8E]">
-                      {project.complexity}
-                    </span>
-                    <span className={cn(
-                      "text-xs px-2 py-0.5 rounded-full",
-                      project.signal === "High" 
-                        ? "bg-[#E87BF1]/20 text-[#E87BF1]"
-                        : "bg-[#3C4166]/10 text-[#6B6F8E]"
-                    )}>
-                      {project.signal} signal
-                    </span>
-                  </div>
+              {analysisData.projectIdeas.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-4 text-sm text-[#6B6F8E]">
+                  No project ideas returned.
                 </div>
-              ))}
+              ) : (
+                analysisData.projectIdeas.map((project, index) => (
+                  <div
+                    key={`${project.title}-${index}`}
+                    className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
+                  >
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <h4 className="font-medium text-[#3C4166]">{project.title}</h4>
+                      <div className="flex gap-2">
+                        <span className="rounded-full bg-[#7ED7F7]/20 px-2 py-0.5 text-xs text-[#4FA7A7]">
+                          {project.complexity}
+                        </span>
+                        <span className="rounded-full bg-[#E87BF1]/20 px-2 py-0.5 text-xs text-[#E87BF1]">
+                          {project.signal} signal
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-[#6B6F8E]">{project.description}</p>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
-          {/* Market Signals Card */}
           <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#4FA7A7]/20 to-[#7ED7F7]/30 flex items-center justify-center">
-                  <BookOpen className="h-5 w-5 text-[#4FA7A7]" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7ED7F7]/20 to-[#C9B6E4]/20">
+                  <Layers className="h-5 w-5 text-[#6B6F8E]" />
                 </div>
                 <div>
                   <CardTitle className="text-lg text-[#3C4166]">Market Signals</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">Industry trends</CardDescription>
+                  <CardDescription className="text-[#6B6F8E]">
+                    Industry trends and expectations
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <div>
-                <h4 className="text-xs font-medium text-[#6B6F8E] uppercase tracking-wider mb-2">Recurring Themes</h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {analysisData.marketSignals.themes.map((theme) => (
-                    <span 
-                      key={theme}
-                      className="text-xs px-2 py-1 rounded-full bg-[#4FA7A7]/10 text-[#4FA7A7]"
-                    >
-                      {theme}
-                    </span>
-                  ))}
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6B6F8E]">
+                  Recurring Themes
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {analysisData.marketSignals.themes.length === 0 ? (
+                    <span className="text-sm text-[#6B6F8E]">No themes returned.</span>
+                  ) : (
+                    analysisData.marketSignals.themes.map((theme) => (
+                      <span
+                        key={theme}
+                        className="rounded-full bg-[#E8F6FB] px-2.5 py-1 text-xs text-[#4FA7A7]"
+                      >
+                        {theme}
+                      </span>
+                    ))
+                  )}
                 </div>
               </div>
+
               <div>
-                <h4 className="text-xs font-medium text-[#6B6F8E] uppercase tracking-wider mb-2">Common Expectations</h4>
-                <ul className="space-y-1.5">
-                  {analysisData.marketSignals.expectations.map((exp) => (
-                    <li key={exp} className="text-xs text-[#3C4166] flex items-start gap-2">
-                      <span className="text-[#4FA7A7] mt-0.5">•</span>
-                      {exp}
-                    </li>
-                  ))}
-                </ul>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6B6F8E]">
+                  Common Expectations
+                </p>
+                {analysisData.marketSignals.expectations.length === 0 ? (
+                  <span className="text-sm text-[#6B6F8E]">No expectations returned.</span>
+                ) : (
+                  <ul className="space-y-2 text-sm text-[#6B6F8E]">
+                    {analysisData.marketSignals.expectations.map((expectation) => (
+                      <li key={expectation} className="flex gap-2">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#4FA7A7]" />
+                        <span>{expectation}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <div className="pt-3 border-t border-[#3C4166]/10">
+
+              <div className="border-t border-[#3C4166]/10 pt-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[#6B6F8E]">Salary Range</span>
-                  <span className="font-medium text-[#3C4166]">{analysisData.marketSignals.salaryRange}</span>
+                  <span className="font-medium text-[#3C4166]">
+                    {analysisData.marketSignals.salaryRange}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between text-sm mt-1">
+
+                <div className="mt-2 flex items-center justify-between text-sm">
                   <span className="text-[#6B6F8E]">Demand</span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#C8F5DF] text-[#4FA7A7] text-xs">
+                  <span className="rounded-full bg-[#C8F5DF] px-2 py-0.5 text-xs text-[#4FA7A7]">
                     {analysisData.marketSignals.demandLevel}
                   </span>
                 </div>
@@ -764,30 +1253,6 @@ export default function AnalysisResultsPage() {
           </Card>
         </div>
       </div>
-
-      {/* CTA Section */}
-      <Card className="mt-8 bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7] border-0 text-white overflow-hidden relative">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-        <CardContent className="py-8 relative">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="text-center md:text-left">
-              <h3 className="text-xl font-semibold mb-2">Ready to close the gap?</h3>
-              <p className="text-white/90">
-                View your personalized roadmap with prioritized steps to reach your target role
-              </p>
-            </div>
-            <Link href="/dashboard/roadmap">
-              <Button 
-                size="lg"
-                className="bg-white text-[#4FA7A7] hover:bg-white/90 rounded-full px-8 shadow-lg"
-              >
-                View My Roadmap
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
