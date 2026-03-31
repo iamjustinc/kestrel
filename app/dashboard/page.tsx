@@ -292,6 +292,66 @@ function EmptyCardMessage({
   )
 }
 
+function getRoadmapStorageKey(analysisId: string) {
+  return `kestrel_roadmap_progress_${analysisId}`
+}
+
+function getRoadmapProgress(savedAnalysis: SavedAnalysisItem | null) {
+  if (!savedAnalysis?.analysis) {
+    return {
+      progress: 0,
+      completed: 0,
+      total: 0,
+    }
+  }
+
+  const nextSteps = savedAnalysis.analysis.nextSteps
+
+  const allSteps = [
+    ...(nextSteps?.now ?? []),
+    ...(nextSteps?.soon ?? []),
+    ...(nextSteps?.later ?? []),
+  ].filter((s) => s?.action)
+
+  if (allSteps.length === 0) {
+    return {
+      progress: 0,
+      completed: 0,
+      total: 0,
+    }
+  }
+
+  try {
+    const raw = window.localStorage.getItem(
+      getRoadmapStorageKey(savedAnalysis.id)
+    )
+    const parsed = raw ? JSON.parse(raw) : {}
+
+    const completedCount = Object.values(parsed).reduce(
+      (acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0),
+      0
+    )
+
+    const totalSubtasks = allSteps.length * 3 // matches roadmap logic
+
+    const progress = totalSubtasks
+      ? Math.round((completedCount / totalSubtasks) * 100)
+      : 0
+
+    return {
+      progress,
+      completed: Math.round(progress / 100 * allSteps.length),
+      total: allSteps.length,
+    }
+  } catch {
+    return {
+      progress: 0,
+      completed: 0,
+      total: allSteps.length,
+    }
+  }
+}
+
 export default function DashboardPage() {
   const [demoUser, setDemoUser] = useState<DemoUser | null>(null)
   const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysisItem[]>([])
@@ -329,6 +389,7 @@ export default function DashboardPage() {
   const readinessTrend = getReadinessTrend(savedAnalyses)
 
   const overallReadiness = latestAnalysis ? latestAnalysis.readinessScore : null
+  const roadmap = getRoadmapProgress(latestAnalysis)
   const readinessDelta =
     latestAnalysis && previousAnalysis
       ? latestAnalysis.readinessScore - previousAnalysis.readinessScore
@@ -548,16 +609,51 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base text-[#3C4166]">Roadmap Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EmptyCardMessage
-              title="No roadmap progress yet."
-              description="We can wire this feature properly in a later pass."
-            />
-          </CardContent>
-        </Card>
+  <CardHeader className="pb-3">
+    <CardTitle className="text-base text-[#3C4166]">
+      Roadmap Progress
+    </CardTitle>
+  </CardHeader>
+
+  <CardContent>
+    {!hasSavedAnalyses || roadmap.total === 0 ? (
+      <EmptyCardMessage
+        title="No roadmap yet"
+        description="Run an analysis to generate your roadmap."
+      />
+    ) : (
+      <div className="flex flex-col items-center justify-center py-4">
+        {/* Progress circle */}
+        <div className="relative w-20 h-20 mb-3">
+          <div className="absolute inset-0 rounded-full border-[6px] border-[#E5E7EB]" />
+          <div
+            className="absolute inset-0 rounded-full border-[6px] border-[#4FA7A7]"
+            style={{
+              clipPath: `inset(${100 - roadmap.progress}% 0 0 0)`,
+            }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-[#3C4166]">
+            {roadmap.progress}%
+          </div>
+        </div>
+
+        <p className="text-sm text-[#6B6F8E] text-center">
+          {roadmap.completed} of {roadmap.total} milestones complete
+        </p>
+
+        <Link href="/dashboard/roadmap" className="mt-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-[#4FA7A7]"
+          >
+            View roadmap →
+          </Button>
+        </Link>
+      </div>
+    )}
+  </CardContent>
+</Card>
 
         <Card className="md:col-span-2 bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
