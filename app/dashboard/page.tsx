@@ -20,11 +20,6 @@ import {
 import Link from "next/link"
 import { getDemoUser, type DemoUser } from "@/lib/demo-auth"
 
-type SavedProfile = {
-  resumeText: string
-  updatedAt: string
-}
-
 type GapItem = {
   skill?: string
   importance?: string
@@ -70,12 +65,10 @@ type DashboardAction = {
   time: string
 }
 
-const readinessTrend = [
-  { month: "Jan", value: 62 },
-  { month: "Feb", value: 68 },
-  { month: "Mar", value: 72 },
-  { month: "Apr", value: 78 },
-]
+type TrendPoint = {
+  label: string
+  value: number
+}
 
 function clampPercent(value: unknown, fallback = 0) {
   const num =
@@ -117,6 +110,17 @@ function formatSavedTime(value: string) {
     })
   } catch {
     return "Recently"
+  }
+}
+
+function formatShortDate(value: string) {
+  try {
+    return new Date(value).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    })
+  } catch {
+    return "Saved"
   }
 }
 
@@ -260,6 +264,16 @@ function getTargetRoles(savedAnalyses: SavedAnalysisItem[]) {
     .slice(0, 3)
 }
 
+function getReadinessTrend(savedAnalyses: SavedAnalysisItem[]): TrendPoint[] {
+  return [...savedAnalyses]
+    .slice(0, 4)
+    .reverse()
+    .map((item) => ({
+      label: formatShortDate(item.savedAt),
+      value: item.readinessScore,
+    }))
+}
+
 function EmptyCardMessage({
   title,
   description,
@@ -281,7 +295,6 @@ function EmptyCardMessage({
 export default function DashboardPage() {
   const [demoUser, setDemoUser] = useState<DemoUser | null>(null)
   const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysisItem[]>([])
-  const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
 
   useEffect(() => {
     setDemoUser(getDemoUser())
@@ -295,17 +308,6 @@ export default function DashboardPage() {
         : []
 
       setSavedAnalyses(normalizedAnalyses)
-
-      const rawSavedProfile = window.localStorage.getItem("kestrel_saved_profile")
-      if (rawSavedProfile) {
-        const parsedProfile = JSON.parse(rawSavedProfile)
-        if (parsedProfile?.resumeText) {
-          setSavedProfile({
-            resumeText: asString(parsedProfile.resumeText, ""),
-            updatedAt: asString(parsedProfile.updatedAt, new Date().toISOString()),
-          })
-        }
-      }
     } catch (error) {
       console.error("Failed to load dashboard data:", error)
     }
@@ -319,10 +321,18 @@ export default function DashboardPage() {
   const hasSavedAnalyses = savedAnalyses.length > 0
   const recentAnalyses = savedAnalyses.slice(0, 3)
   const latestAnalysis = savedAnalyses[0] ?? null
+  const previousAnalysis = savedAnalyses[1] ?? null
   const targetRoles = getTargetRoles(savedAnalyses)
   const topSkillGaps = latestAnalysis ? getTopSkillGaps(latestAnalysis) : []
   const nextActions = latestAnalysis ? getUpcomingActions(latestAnalysis) : []
   const resumeScore = latestAnalysis ? latestAnalysis.atsScore : null
+  const readinessTrend = getReadinessTrend(savedAnalyses)
+
+  const overallReadiness = latestAnalysis ? latestAnalysis.readinessScore : null
+  const readinessDelta =
+    latestAnalysis && previousAnalysis
+      ? latestAnalysis.readinessScore - previousAnalysis.readinessScore
+      : null
 
   return (
     <div className="pb-24 lg:pb-0">
@@ -340,31 +350,79 @@ export default function DashboardPage() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
           <CardContent className="pt-6 relative">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <p className="text-white/80 text-sm font-medium mb-1">Overall Readiness</p>
-                <h2 className="text-5xl font-bold tracking-tight">78%</h2>
-                <p className="text-white/70 text-sm mt-1 flex items-center gap-1">
-                  <TrendingUp className="h-4 w-4" />
-                  +12% from last month
-                </p>
-              </div>
-              <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Target className="h-7 w-7" />
-              </div>
-            </div>
-
-            <div className="flex items-end gap-2 h-16 mt-4">
-              {readinessTrend.map((point) => (
-                <div key={point.month} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t-md bg-white/30 transition-all"
-                    style={{ height: `${(point.value / 100) * 60}px` }}
-                  />
-                  <span className="text-[10px] text-white/60">{point.month}</span>
+            {!hasSavedAnalyses || overallReadiness === null ? (
+              <div className="flex min-h-[220px] flex-col justify-between">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <p className="text-white/80 text-sm font-medium mb-1">Overall Readiness</p>
+                    <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                      It seems empty in here.
+                    </h2>
+                    <p className="text-white/80 text-sm mt-3 max-w-md">
+                      Add a role and resume to start seeing your real readiness here.
+                    </p>
+                  </div>
+                  <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Target className="h-7 w-7" />
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="flex items-center gap-3">
+                  <Link href="/dashboard/analysis">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="bg-white/20 hover:bg-white/30 text-white border-0"
+                    >
+                      Add first role
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/resume-lab">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                    >
+                      Add resume
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <p className="text-white/80 text-sm font-medium mb-1">Overall Readiness</p>
+                    <h2 className="text-5xl font-bold tracking-tight">{overallReadiness}%</h2>
+                    <p className="text-white/70 text-sm mt-1 flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4" />
+                      {readinessDelta === null
+                        ? "Based on your latest saved analysis"
+                        : readinessDelta >= 0
+                          ? `+${readinessDelta}% from previous saved analysis`
+                          : `${readinessDelta}% from previous saved analysis`}
+                    </p>
+                  </div>
+                  <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Target className="h-7 w-7" />
+                  </div>
+                </div>
+
+                {readinessTrend.length > 0 ? (
+                  <div className="flex items-end gap-2 h-16 mt-4">
+                    {readinessTrend.map((point) => (
+                      <div key={`${point.label}-${point.value}`} className="flex-1 flex flex-col items-center gap-1">
+                        <div
+                          className="w-full rounded-t-md bg-white/30 transition-all"
+                          style={{ height: `${Math.max((point.value / 100) * 60, 8)}px` }}
+                        />
+                        <span className="text-[10px] text-white/60">{point.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -394,7 +452,8 @@ export default function DashboardPage() {
               </Link>
               <Link href="/dashboard/roadmap">
                 <div className="p-4 rounded-xl bg-gradient-to-br from-[#C8F5DF]/30 to-[#4FA7A7]/10 border border-[#C8F5DF]/40 hover:border-[#C8F5DF]/60 transition-all cursor-pointer group">
-                <MapIcon className="h-5 w-5 text-[#4FA7A7] mb-2 group-hover:scale-110 transition-transform" />                  <span className="text-sm font-medium text-[#3C4166]">Continue Roadmap</span>
+                  <MapIcon className="h-5 w-5 text-[#4FA7A7] mb-2 group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-medium text-[#3C4166]">Continue Roadmap</span>
                 </div>
               </Link>
             </div>
@@ -495,7 +554,7 @@ export default function DashboardPage() {
           <CardContent>
             <EmptyCardMessage
               title="No roadmap progress yet."
-              description="This will populate once your roadmap milestones are being tracked."
+              description="We can wire this feature properly in a later pass."
             />
           </CardContent>
         </Card>
