@@ -23,22 +23,14 @@ export function DashboardHeader() {
 
   const displayName = getDisplayName(demoUser)
   const initials = getInitials(demoUser)
-  const email = demoUser?.email ?? "alex@example.com"
+  const email = demoUser?.email ?? ""
 
   return (
     <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#3C4166]/10 bg-white/70 backdrop-blur-xl px-4 lg:px-8">
-      {/* Mobile menu button */}
       <button className="lg:hidden p-2 text-[#6B6F8E] hover:text-[#3C4166] transition-colors">
         <Menu className="h-6 w-6" />
       </button>
 
-      {/* Target role indicator (workspace label) */}
-      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#C9B6E4]/15 border border-[#C9B6E4]/20">
-        <div className="h-2 w-2 rounded-full bg-[#E87BF1]" />
-        <span className="text-xs font-medium text-[#3C4166]">Target: Product Manager</span>
-      </div>
-
-      {/* Search */}
       <div className="flex flex-1 gap-x-4 lg:gap-x-6 justify-end md:justify-start">
         <div className="relative flex flex-1 max-w-md">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B6F8E]" />
@@ -50,7 +42,6 @@ export function DashboardHeader() {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-x-3">
         <Link href="/dashboard/analysis">
           <Button className="hidden sm:flex bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7] hover:from-[#4FA7A7]/90 hover:to-[#7ED7F7]/90 text-white rounded-full px-4 h-9 text-sm shadow-md shadow-[#4FA7A7]/20 hover:shadow-lg hover:shadow-[#4FA7A7]/30 transition-all">
@@ -59,7 +50,6 @@ export function DashboardHeader() {
           </Button>
         </Link>
 
-        {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="relative p-2.5 text-[#6B6F8E] hover:text-[#3C4166] hover:bg-[#3C4166]/5 rounded-full transition-all">
@@ -76,7 +66,6 @@ export function DashboardHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Profile */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 p-1 rounded-full hover:bg-[#3C4166]/5 transition-colors">

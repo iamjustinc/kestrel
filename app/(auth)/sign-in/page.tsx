@@ -49,7 +49,7 @@ export default function SignInPage() {
 
           <div className="mb-7 text-center">
             <p className="mb-3 text-[11px] font-black uppercase tracking-[0.32em] text-[#2D3436] sm:text-xs">
-              Welcome to Quail
+              Welcome to Kestrel
             </p>
             <h1 className="text-4xl font-black tracking-tight text-[#2D3436] sm:text-5xl">
               Sign in as:

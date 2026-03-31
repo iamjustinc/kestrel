@@ -1,13 +1,12 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  ArrowRight, 
-  ArrowUpRight, 
-  FileSearch, 
-  Map, 
-  Target, 
+import {
+  ArrowRight,
+  Map,
+  Target,
   TrendingUp,
   Sparkles,
   Clock,
@@ -18,8 +17,8 @@ import {
   ChevronRight
 } from "lucide-react"
 import Link from "next/link"
+import { getDemoUser, type DemoUser } from "@/lib/demo-auth"
 
-// Mock data
 const recentAnalyses = [
   {
     id: 1,
@@ -69,22 +68,29 @@ const readinessTrend = [
 ]
 
 export default function DashboardPage() {
+  const [demoUser, setDemoUser] = useState<DemoUser | null>(null)
+
+  useEffect(() => {
+    setDemoUser(getDemoUser())
+  }, [])
+
+  const firstName = useMemo(() => {
+    const savedFirstName = demoUser?.firstName?.trim()
+    return savedFirstName && savedFirstName.length > 0 ? savedFirstName : "there"
+  }, [demoUser])
+
   return (
     <div className="pb-24 lg:pb-0">
-      {/* Welcome section */}
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[#3C4166]">
-          Welcome back, Alex
+          Welcome back, {firstName}
         </h1>
         <p className="mt-1 text-[#6B6F8E]">
           Track your progress and take the next step in your career journey.
         </p>
       </div>
 
-      {/* Bento grid layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
-        
-        {/* Large readiness overview card - focal point */}
         <Card className="md:col-span-2 lg:col-span-2 bg-gradient-to-br from-[#4FA7A7] to-[#7ED7F7] border-0 text-white overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
@@ -102,12 +108,11 @@ export default function DashboardPage() {
                 <Target className="h-7 w-7" />
               </div>
             </div>
-            
-            {/* Mini trend chart */}
+
             <div className="flex items-end gap-2 h-16 mt-4">
-              {readinessTrend.map((point, i) => (
+              {readinessTrend.map((point) => (
                 <div key={point.month} className="flex-1 flex flex-col items-center gap-1">
-                  <div 
+                  <div
                     className="w-full rounded-t-md bg-white/30 transition-all"
                     style={{ height: `${(point.value / 100) * 60}px` }}
                   />
@@ -118,7 +123,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Quick actions */}
         <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-base text-[#3C4166]">Quick Actions</CardTitle>
@@ -153,7 +157,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Recent analyses */}
         <Card className="md:col-span-2 bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
@@ -170,8 +173,8 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-3">
               {recentAnalyses.map((analysis) => (
-                <Link 
-                  key={analysis.id} 
+                <Link
+                  key={analysis.id}
                   href="/dashboard/analysis/results"
                   className="flex items-center justify-between p-3 rounded-xl bg-[#F6F1E7]/50 hover:bg-[#F6F1E7] border border-transparent hover:border-[#3C4166]/10 transition-all group"
                 >
@@ -198,7 +201,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Target roles */}
         <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-base text-[#3C4166]">Target Roles</CardTitle>
@@ -213,7 +215,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-2 rounded-full bg-[#3C4166]/10 overflow-hidden">
-                      <div 
+                      <div
                         className="h-full rounded-full bg-gradient-to-r from-[#4FA7A7] to-[#7ED7F7]"
                         style={{ width: `${target.avgReadiness}%` }}
                       />
@@ -226,7 +228,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Roadmap progress */}
         <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-base text-[#3C4166]">Roadmap Progress</CardTitle>
@@ -268,7 +269,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Priority skill gaps */}
         <Card className="md:col-span-2 bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
@@ -282,18 +282,20 @@ export default function DashboardPage() {
                 <div key={gap.skill}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-sm text-[#3C4166]">{gap.skill}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      gap.impact === "High" 
-                        ? "bg-[#FF8FA3]/15 text-[#FF8FA3]" 
-                        : "bg-[#7ED7F7]/15 text-[#4FA7A7]"
-                    }`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        gap.impact === "High"
+                          ? "bg-[#FF8FA3]/15 text-[#FF8FA3]"
+                          : "bg-[#7ED7F7]/15 text-[#4FA7A7]"
+                      }`}
+                    >
                       {gap.impact} Impact
                     </span>
                   </div>
                   <div className="h-2 rounded-full bg-[#3C4166]/10 overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full rounded-full transition-all ${
-                        gap.progress < 50 
+                        gap.progress < 50
                           ? "bg-gradient-to-r from-[#FF8FA3] to-[#F7C7D4]"
                           : gap.progress < 70
                             ? "bg-gradient-to-r from-[#E87BF1] to-[#C9B6E4]"
@@ -308,7 +310,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Next actions - Suggested actions */}
         <Card className="md:col-span-2 lg:col-span-2 bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
@@ -325,18 +326,20 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-3">
               {nextActions.map((action, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className="flex items-center justify-between p-3 rounded-xl bg-[#F6F1E7]/50 border border-[#3C4166]/5 hover:border-[#3C4166]/10 transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-                      action.type === "course" 
-                        ? "bg-[#E87BF1]/15"
-                        : action.type === "project"
-                          ? "bg-[#C8F5DF]"
-                          : "bg-[#7ED7F7]/15"
-                    }`}>
+                    <div
+                      className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+                        action.type === "course"
+                          ? "bg-[#E87BF1]/15"
+                          : action.type === "project"
+                            ? "bg-[#C8F5DF]"
+                            : "bg-[#7ED7F7]/15"
+                      }`}
+                    >
                       {action.type === "course" ? (
                         <TrendingUp className="h-5 w-5 text-[#E87BF1]" />
                       ) : action.type === "project" ? (
@@ -348,13 +351,15 @@ export default function DashboardPage() {
                     <div>
                       <h4 className="font-medium text-sm text-[#3C4166]">{action.title}</h4>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          action.tag === "High Impact"
-                            ? "bg-[#FF8FA3]/15 text-[#FF8FA3]"
-                            : action.tag === "Quick Win"
-                              ? "bg-[#C8F5DF] text-[#4FA7A7]"
-                              : "bg-[#C9B6E4]/20 text-[#C9B6E4]"
-                        }`}>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            action.tag === "High Impact"
+                              ? "bg-[#FF8FA3]/15 text-[#FF8FA3]"
+                              : action.tag === "Quick Win"
+                                ? "bg-[#C8F5DF] text-[#4FA7A7]"
+                                : "bg-[#C9B6E4]/20 text-[#C9B6E4]"
+                          }`}
+                        >
                           {action.tag}
                         </span>
                         <span className="text-xs text-[#6B6F8E] flex items-center gap-1">
@@ -373,7 +378,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Resume improvement status */}
         <Card className="bg-gradient-to-br from-[#F7C7D4]/30 to-[#C9B6E4]/20 border-[#F7C7D4]/30">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3 mb-4">
@@ -400,7 +404,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Pro tip */}
         <Card className="bg-gradient-to-br from-[#4FA7A7] to-[#7ED7F7] border-0 text-white">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3 mb-4">
@@ -413,8 +416,8 @@ export default function DashboardPage() {
               </div>
             </div>
             <Link href="/dashboard/analysis">
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 size="sm"
                 className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
               >
@@ -423,7 +426,6 @@ export default function DashboardPage() {
             </Link>
           </CardContent>
         </Card>
-
       </div>
     </div>
   )
