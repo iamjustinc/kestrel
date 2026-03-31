@@ -98,6 +98,7 @@ type ResultsAnalysisData = {
 
 type GapBucketKey = "technical" | "productBusiness" | "communication" | "toolsPlatforms"
 type StepBucketKey = "now" | "soon" | "later"
+
 type SavedAnalysisRecord = {
   id: string
   savedAt: string
@@ -175,11 +176,7 @@ function asStringArray(value: unknown) {
 function pickStrengthIcon(skill: string) {
   const value = skill.toLowerCase()
 
-  if (
-    value.includes("strategy") ||
-    value.includes("roadmap") ||
-    value.includes("planning")
-  ) {
+  if (value.includes("strategy") || value.includes("roadmap") || value.includes("planning")) {
     return Target
   }
 
@@ -192,11 +189,7 @@ function pickStrengthIcon(skill: string) {
     return Briefcase
   }
 
-  if (
-    value.includes("research") ||
-    value.includes("discovery") ||
-    value.includes("insight")
-  ) {
+  if (value.includes("research") || value.includes("discovery") || value.includes("insight")) {
     return Lightbulb
   }
 
@@ -283,10 +276,7 @@ function normalizeGapItem(item: any): GapItem {
   return {
     skill: asString(item?.skill, "Gap"),
     importance,
-    currentLevel: clampPercent(
-      item?.currentLevel,
-      defaultCurrentLevel(importance)
-    ),
+    currentLevel: clampPercent(item?.currentLevel, defaultCurrentLevel(importance)),
     suggestion: asString(item?.suggestion, "Build more evidence in this area."),
   }
 }
@@ -310,18 +300,10 @@ function normalizeSkillGaps(raw: any) {
 
   if (raw && typeof raw === "object") {
     return {
-      technical: Array.isArray(raw.technical)
-        ? raw.technical.map(normalizeGapItem)
-        : [],
-      productBusiness: Array.isArray(raw.productBusiness)
-        ? raw.productBusiness.map(normalizeGapItem)
-        : [],
-      communication: Array.isArray(raw.communication)
-        ? raw.communication.map(normalizeGapItem)
-        : [],
-      toolsPlatforms: Array.isArray(raw.toolsPlatforms)
-        ? raw.toolsPlatforms.map(normalizeGapItem)
-        : [],
+      technical: Array.isArray(raw.technical) ? raw.technical.map(normalizeGapItem) : [],
+      productBusiness: Array.isArray(raw.productBusiness) ? raw.productBusiness.map(normalizeGapItem) : [],
+      communication: Array.isArray(raw.communication) ? raw.communication.map(normalizeGapItem) : [],
+      toolsPlatforms: Array.isArray(raw.toolsPlatforms) ? raw.toolsPlatforms.map(normalizeGapItem) : [],
     }
   }
 
@@ -382,20 +364,11 @@ function normalizeResultsAnalysis(raw: any): ResultsAnalysisData {
   return {
     role: asString(source?.role, emptyAnalysisData.role),
     company: asString(source?.company, emptyAnalysisData.company),
-    readinessScore: clampPercent(
-      source?.readinessScore,
-      emptyAnalysisData.readinessScore
-    ),
-    confidenceLevel: asString(
-      source?.confidenceLevel,
-      emptyAnalysisData.confidenceLevel
-    ),
+    readinessScore: clampPercent(source?.readinessScore, emptyAnalysisData.readinessScore),
+    confidenceLevel: asString(source?.confidenceLevel, emptyAnalysisData.confidenceLevel),
     atsScore,
     analyzedAt: asString(source?.analyzedAt, emptyAnalysisData.analyzedAt),
-    matchSummary: asString(
-      source?.matchSummary,
-      emptyAnalysisData.matchSummary
-    ),
+    matchSummary: asString(source?.matchSummary, emptyAnalysisData.matchSummary),
     strengths: Array.isArray(source?.strengths)
       ? source.strengths.map((item: any) => ({
           skill: asString(item?.skill, "Strength"),
@@ -412,10 +385,7 @@ function normalizeResultsAnalysis(raw: any): ResultsAnalysisData {
     },
     resumeSuggestions: Array.isArray(source?.resumeSuggestions)
       ? source.resumeSuggestions.map((item: any) => ({
-          type:
-            asString(item?.type, "add").toLowerCase() === "reframe"
-              ? "reframe"
-              : "add",
+          type: asString(item?.type, "add").toLowerCase() === "reframe" ? "reframe" : "add",
           title: asString(item?.title, "Resume improvement"),
           current:
             typeof item?.current === "string" && item.current.trim().length > 0
@@ -440,23 +410,14 @@ function normalizeResultsAnalysis(raw: any): ResultsAnalysisData {
           title: asString(item?.title, "Portfolio project"),
           complexity: asString(item?.complexity, "Medium"),
           signal: asString(item?.signal, "Medium"),
-          description: asString(
-            item?.description,
-            "A project idea relevant to this role."
-          ),
+          description: asString(item?.description, "A project idea relevant to this role."),
         }))
       : [],
     marketSignals: {
       themes: asStringArray(source?.marketSignals?.themes),
       expectations: asStringArray(source?.marketSignals?.expectations),
-      salaryRange: asString(
-        source?.marketSignals?.salaryRange,
-        emptyAnalysisData.marketSignals.salaryRange
-      ),
-      demandLevel: asString(
-        source?.marketSignals?.demandLevel,
-        emptyAnalysisData.marketSignals.demandLevel
-      ),
+      salaryRange: asString(source?.marketSignals?.salaryRange, emptyAnalysisData.marketSignals.salaryRange),
+      demandLevel: asString(source?.marketSignals?.demandLevel, emptyAnalysisData.marketSignals.demandLevel),
     },
     rawNotes: asString(source?.rawNotes, ""),
   }
@@ -465,36 +426,18 @@ function normalizeResultsAnalysis(raw: any): ResultsAnalysisData {
 function getImportanceBadgeClass(value: string) {
   const normalized = value.toLowerCase()
 
-  if (normalized === "critical") {
-    return "bg-[#FF8FA3]/20 text-[#FF8FA3]"
-  }
-
-  if (normalized === "high") {
-    return "bg-[#E87BF1]/20 text-[#E87BF1]"
-  }
-
-  if (normalized === "medium") {
-    return "bg-[#7ED7F7]/20 text-[#4FA7A7]"
-  }
-
+  if (normalized === "critical") return "bg-[#FF8FA3]/20 text-[#FF8FA3]"
+  if (normalized === "high") return "bg-[#E87BF1]/20 text-[#E87BF1]"
+  if (normalized === "medium") return "bg-[#7ED7F7]/20 text-[#4FA7A7]"
   return "bg-[#3C4166]/10 text-[#6B6F8E]"
 }
 
 function getImpactBadgeClass(value: string) {
   const normalized = value.toLowerCase()
 
-  if (normalized === "critical") {
-    return "bg-[#FF8FA3]/20 text-[#FF8FA3]"
-  }
-
-  if (normalized === "high") {
-    return "bg-[#E87BF1]/20 text-[#E87BF1]"
-  }
-
-  if (normalized === "medium") {
-    return "bg-[#7ED7F7]/20 text-[#4FA7A7]"
-  }
-
+  if (normalized === "critical") return "bg-[#FF8FA3]/20 text-[#FF8FA3]"
+  if (normalized === "high") return "bg-[#E87BF1]/20 text-[#E87BF1]"
+  if (normalized === "medium") return "bg-[#7ED7F7]/20 text-[#4FA7A7]"
   return "bg-[#3C4166]/10 text-[#6B6F8E]"
 }
 
@@ -505,10 +448,7 @@ function getCategoryDotClass(key: GapBucketKey) {
   return "from-[#C9B6E4] to-[#F7C7D4]"
 }
 
-const gapCategories: Array<{
-  key: GapBucketKey
-  label: string
-}> = [
+const gapCategories: Array<{ key: GapBucketKey; label: string }> = [
   { key: "technical", label: "Technical Skills" },
   { key: "productBusiness", label: "Product & Business" },
   { key: "communication", label: "Communication" },
@@ -521,24 +461,9 @@ const nextStepBuckets: Array<{
   sublabel: string
   dotClass: string
 }> = [
-  {
-    key: "now",
-    label: "Do Now",
-    sublabel: "Quick wins",
-    dotClass: "bg-[#4FA7A7]",
-  },
-  {
-    key: "soon",
-    label: "Do Soon",
-    sublabel: "This week",
-    dotClass: "bg-[#E87BF1]",
-  },
-  {
-    key: "later",
-    label: "Do Later",
-    sublabel: "This month",
-    dotClass: "bg-[#7ED7F7]",
-  },
+  { key: "now", label: "Do Now", sublabel: "Quick wins", dotClass: "bg-[#4FA7A7]" },
+  { key: "soon", label: "Do Soon", sublabel: "This week", dotClass: "bg-[#E87BF1]" },
+  { key: "later", label: "Do Later", sublabel: "This month", dotClass: "bg-[#7ED7F7]" },
 ]
 
 export default function AnalysisResultsPage() {
@@ -547,6 +472,20 @@ export default function AnalysisResultsPage() {
   const [expandedGaps, setExpandedGaps] = useState<GapBucketKey[]>(["technical"])
   const [savedSuggestions, setSavedSuggestions] = useState<number[]>([])
   const resultsPrintRef = useRef<HTMLDivElement | null>(null)
+
+  const strengthsRef = useRef<HTMLDivElement | null>(null)
+  const skillGapsRef = useRef<HTMLDivElement | null>(null)
+  const resumeSuggestionsRef = useRef<HTMLDivElement | null>(null)
+  const certificationsRef = useRef<HTMLDivElement | null>(null)
+  const projectIdeasRef = useRef<HTMLDivElement | null>(null)
+  const marketSignalsRef = useRef<HTMLDivElement | null>(null)
+
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
+  }
 
   useEffect(() => {
     try {
@@ -600,13 +539,8 @@ export default function AnalysisResultsPage() {
 
       const nextSaved = [nextItem, ...deduped]
 
-      window.localStorage.setItem(
-        "kestrel_saved_analyses",
-        JSON.stringify(nextSaved)
-      )
-
+      window.localStorage.setItem("kestrel_saved_analyses", JSON.stringify(nextSaved))
       window.dispatchEvent(new Event("kestrel-saved-analyses-updated"))
-
       window.alert("Saved to Saved Analyses.")
     } catch (error) {
       console.error("Failed to save analysis:", error)
@@ -656,9 +590,7 @@ export default function AnalysisResultsPage() {
   const handleCopySuggestion = async (text: string, index: number) => {
     try {
       await navigator.clipboard.writeText(text)
-      setSavedSuggestions((prev) =>
-        prev.includes(index) ? prev : [...prev, index]
-      )
+      setSavedSuggestions((prev) => (prev.includes(index) ? prev : [...prev, index]))
     } catch (error) {
       console.error("Failed to copy suggestion:", error)
     }
@@ -671,7 +603,7 @@ export default function AnalysisResultsPage() {
   if (!analysisData) {
     return (
       <div id="analysis-print-root" className="pb-20 lg:pb-0">
-        <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+        <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
           <CardContent className="py-16 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4FA7A7]/20 to-[#E87BF1]/20">
               <AlertCircle className="h-6 w-6 text-[#E87BF1]" />
@@ -695,9 +627,9 @@ export default function AnalysisResultsPage() {
 
   return (
     <div ref={resultsPrintRef} className="pb-20 lg:pb-0">
-      <Card className="mb-8 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm border-[#3C4166]/10 overflow-hidden relative">
-        <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-gradient-to-br from-[#4FA7A7]/10 via-[#7ED7F7]/10 to-[#C9B6E4]/10 blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <CardContent className="relative pt-8 pb-8">
+      <Card className="relative mb-6 overflow-hidden border-[#3C4166]/10 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm">
+        <div className="absolute top-0 right-0 h-64 w-64 -translate-y-1/2 translate-x-1/2 rounded-full bg-gradient-to-br from-[#4FA7A7]/10 via-[#7ED7F7]/10 to-[#C9B6E4]/10 blur-3xl" />
+        <CardContent className="relative pt-6 pb-6">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
             <div className="flex items-start gap-6">
               <div className="relative flex-shrink-0">
@@ -750,9 +682,7 @@ export default function AnalysisResultsPage() {
                   {analysisData.role}
                 </h1>
 
-                <p className="mb-4 text-lg text-[#6B6F8E]">
-                  at {analysisData.company}
-                </p>
+                <p className="mb-4 text-lg text-[#6B6F8E]">at {analysisData.company}</p>
 
                 <p className="max-w-xl text-sm leading-relaxed text-[#6B6F8E]">
                   {analysisData.matchSummary}
@@ -761,341 +691,395 @@ export default function AnalysisResultsPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 lg:flex-col">
-            <Button
-  variant="outline"
-  size="sm"
-  onClick={handleSaveAnalysis}
-  className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
->
-  <Bookmark className="mr-2 h-4 w-4" />
-  Save Analysis
-</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveAnalysis}
+                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+              >
+                <Bookmark className="mr-2 h-4 w-4" />
+                Save Analysis
+              </Button>
 
-<Button
-  variant="outline"
-  size="sm"
-  onClick={handleExportPdf}
-  className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
->
-  <Download className="mr-2 h-4 w-4" />
-  Export PDF
-</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPdf}
+                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export PDF
+              </Button>
 
-<Button
-  variant="outline"
-  size="sm"
-  onClick={handleCompare}
-  className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
->
-  <Share2 className="mr-2 h-4 w-4" />
-  Compare
-</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCompare}
+                className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                Compare
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => scrollToSection(strengthsRef)}
+          className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+        >
+          Strengths
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => scrollToSection(skillGapsRef)}
+          className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+        >
+          Skill Gaps
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => scrollToSection(resumeSuggestionsRef)}
+          className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+        >
+          Resume Suggestions
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => scrollToSection(certificationsRef)}
+          className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+        >
+          Certifications
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => scrollToSection(projectIdeasRef)}
+          className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+        >
+          Project Ideas
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => scrollToSection(marketSignalsRef)}
+          className="border-[#3C4166]/15 text-[#3C4166] hover:bg-[#3C4166]/5"
+        >
+          Market Signals
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="space-y-5 lg:col-span-2">
+          <div ref={strengthsRef}>
+            <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C8F5DF] to-[#4FA7A7]/30">
+                      <CheckCircle2 className="h-5 w-5 text-[#4FA7A7]" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-[#3C4166]">Your Strengths</CardTitle>
+                      <CardDescription className="text-[#6B6F8E]">
+                        What you already bring to this role
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-[#4FA7A7]">
+                    {analysisData.strengths.length} matched
+                  </span>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                {analysisData.strengths.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-6 text-sm text-[#6B6F8E]">
+                    No strengths returned yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {analysisData.strengths.map((strength) => {
+                      const Icon = strength.icon
+                      return (
+                        <div
+                          key={strength.skill}
+                          className="flex items-start gap-4 rounded-xl border border-[#4FA7A7]/10 bg-gradient-to-r from-[#C8F5DF]/30 to-transparent p-4"
+                        >
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#4FA7A7]/10">
+                            <Icon className="h-5 w-5 text-[#4FA7A7]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <h4 className="font-medium text-[#3C4166]">{strength.skill}</h4>
+                              <span className="rounded-full bg-[#C8F5DF] px-2 py-0.5 text-xs text-[#4FA7A7]">
+                                {strength.level}
+                              </span>
+                            </div>
+                            <p className="text-sm text-[#6B6F8E]">{strength.evidence}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div ref={skillGapsRef}>
+            <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C8F5DF] to-[#4FA7A7]/30">
-                    <CheckCircle2 className="h-5 w-5 text-[#4FA7A7]" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8FA3]/20 to-[#E87BF1]/20">
+                    <TrendingUp className="h-5 w-5 text-[#E87BF1]" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg text-[#3C4166]">Your Strengths</CardTitle>
+                    <CardTitle className="text-lg text-[#3C4166]">Skill Gaps to Address</CardTitle>
                     <CardDescription className="text-[#6B6F8E]">
-                      What you already bring to this role
+                      Organized by category for focused improvement
                     </CardDescription>
                   </div>
                 </div>
-                <span className="text-sm font-medium text-[#4FA7A7]">
-                  {analysisData.strengths.length} matched
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {analysisData.strengths.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-6 text-sm text-[#6B6F8E]">
-                  No strengths returned yet.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {analysisData.strengths.map((strength) => {
-                    const Icon = strength.icon
-                    return (
-                      <div
-                        key={strength.skill}
-                        className="flex items-start gap-4 rounded-xl border border-[#4FA7A7]/10 bg-gradient-to-r from-[#C8F5DF]/30 to-transparent p-4"
-                      >
-                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#4FA7A7]/10">
-                          <Icon className="h-5 w-5 text-[#4FA7A7]" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-1 flex items-center justify-between gap-2">
-                            <h4 className="font-medium text-[#3C4166]">{strength.skill}</h4>
-                            <span className="rounded-full bg-[#C8F5DF] px-2 py-0.5 text-xs text-[#4FA7A7]">
-                              {strength.level}
-                            </span>
-                          </div>
-                          <p className="text-sm text-[#6B6F8E]">{strength.evidence}</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
 
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8FA3]/20 to-[#E87BF1]/20">
-                  <TrendingUp className="h-5 w-5 text-[#E87BF1]" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Skill Gaps to Address</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">
-                    Organized by category for focused improvement
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
+              <CardContent className="space-y-3">
+                {gapCategories.map((category) => {
+                  const gaps = analysisData.skillGaps[category.key]
+                  const isExpanded = expandedGaps.includes(category.key)
 
-            <CardContent className="space-y-4">
-              {gapCategories.map((category) => {
-                const gaps = analysisData.skillGaps[category.key]
-                const isExpanded = expandedGaps.includes(category.key)
-
-                return (
-                  <div
-                    key={category.key}
-                    className="overflow-hidden rounded-xl border border-[#3C4166]/10"
-                  >
-                    <button
-                      onClick={() => toggleGapCategory(category.key)}
-                      className="flex w-full items-center justify-between p-4 transition-colors hover:bg-[#F6F1E7]/50"
+                  return (
+                    <div
+                      key={category.key}
+                      className="overflow-hidden rounded-xl border border-[#3C4166]/10"
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            "h-2 w-2 rounded-full bg-gradient-to-r",
-                            getCategoryDotClass(category.key)
-                          )}
-                        />
-                        <span className="font-medium text-[#3C4166]">{category.label}</span>
-                        <span className="rounded-full bg-[#3C4166]/10 px-2 py-0.5 text-xs text-[#6B6F8E]">
-                          {gaps.length} gaps
-                        </span>
-                      </div>
+                      <button
+                        onClick={() => toggleGapCategory(category.key)}
+                        className="flex w-full items-center justify-between p-4 transition-colors hover:bg-[#F6F1E7]/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={cn(
+                              "h-2 w-2 rounded-full bg-gradient-to-r",
+                              getCategoryDotClass(category.key)
+                            )}
+                          />
+                          <span className="font-medium text-[#3C4166]">{category.label}</span>
+                          <span className="rounded-full bg-[#3C4166]/10 px-2 py-0.5 text-xs text-[#6B6F8E]">
+                            {gaps.length} gaps
+                          </span>
+                        </div>
 
-                      {isExpanded ? (
-                        <ChevronUp className="h-5 w-5 text-[#6B6F8E]" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-[#6B6F8E]" />
-                      )}
-                    </button>
-
-                    {isExpanded && (
-                      <div className="space-y-3 px-4 pb-4">
-                        {gaps.length === 0 ? (
-                          <div className="rounded-xl bg-[#F6F1E7]/40 p-4 text-sm text-[#6B6F8E]">
-                            No gaps returned in this category.
-                          </div>
+                        {isExpanded ? (
+                          <ChevronUp className="h-5 w-5 text-[#6B6F8E]" />
                         ) : (
-                          gaps.map((gap) => (
-                            <div key={gap.skill} className="rounded-xl bg-[#F6F1E7]/50 p-4">
-                              <div className="mb-3 flex items-center justify-between">
-                                <h4 className="font-medium text-[#3C4166]">{gap.skill}</h4>
-                                <span
-                                  className={cn(
-                                    "rounded-full px-2 py-0.5 text-xs",
-                                    getImportanceBadgeClass(gap.importance)
-                                  )}
-                                >
-                                  {gap.importance}
-                                </span>
-                              </div>
-
-                              <div className="mb-3">
-                                <div className="mb-1 flex justify-between text-xs text-[#6B6F8E]">
-                                  <span>Current Level</span>
-                                  <span>{gap.currentLevel}%</span>
-                                </div>
-                                <div className="h-2 overflow-hidden rounded-full bg-[#3C4166]/10">
-                                  <div
-                                    className={cn(
-                                      "h-full rounded-full bg-gradient-to-r",
-                                      gap.currentLevel < 50
-                                        ? "from-[#FF8FA3] to-[#F7C7D4]"
-                                        : gap.currentLevel < 70
-                                          ? "from-[#E87BF1] to-[#C9B6E4]"
-                                          : "from-[#4FA7A7] to-[#7ED7F7]"
-                                    )}
-                                    style={{ width: `${gap.currentLevel}%` }}
-                                  />
-                                </div>
-                              </div>
-
-                              <p className="text-sm text-[#6B6F8E]">
-                                <span className="font-medium text-[#3C4166]">Action:</span>{" "}
-                                {gap.suggestion}
-                              </p>
-                            </div>
-                          ))
+                          <ChevronDown className="h-5 w-5 text-[#6B6F8E]" />
                         )}
-                      </div>
-                    )}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="space-y-3 px-4 pb-4">
+                          {gaps.length === 0 ? (
+                            <div className="rounded-xl bg-[#F6F1E7]/40 p-4 text-sm text-[#6B6F8E]">
+                              No gaps returned in this category.
+                            </div>
+                          ) : (
+                            gaps.map((gap) => (
+                              <div key={gap.skill} className="rounded-xl bg-[#F6F1E7]/50 p-4">
+                                <div className="mb-3 flex items-center justify-between">
+                                  <h4 className="font-medium text-[#3C4166]">{gap.skill}</h4>
+                                  <span
+                                    className={cn(
+                                      "rounded-full px-2 py-0.5 text-xs",
+                                      getImportanceBadgeClass(gap.importance)
+                                    )}
+                                  >
+                                    {gap.importance}
+                                  </span>
+                                </div>
+
+                                <div className="mb-3">
+                                  <div className="mb-1 flex justify-between text-xs text-[#6B6F8E]">
+                                    <span>Current Level</span>
+                                    <span>{gap.currentLevel}%</span>
+                                  </div>
+                                  <div className="h-2 overflow-hidden rounded-full bg-[#3C4166]/10">
+                                    <div
+                                      className={cn(
+                                        "h-full rounded-full bg-gradient-to-r",
+                                        gap.currentLevel < 50
+                                          ? "from-[#FF8FA3] to-[#F7C7D4]"
+                                          : gap.currentLevel < 70
+                                            ? "from-[#E87BF1] to-[#C9B6E4]"
+                                            : "from-[#4FA7A7] to-[#7ED7F7]"
+                                      )}
+                                      style={{ width: `${gap.currentLevel}%` }}
+                                    />
+                                  </div>
+                                </div>
+
+                                <p className="text-sm text-[#6B6F8E]">
+                                  <span className="font-medium text-[#3C4166]">Action:</span>{" "}
+                                  {gap.suggestion}
+                                </p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div ref={resumeSuggestionsRef}>
+            <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#E87BF1]/20 to-[#C9B6E4]/20">
+                    <FileText className="h-5 w-5 text-[#E87BF1]" />
                   </div>
-                )
-              })}
-            </CardContent>
-          </Card>
+                  <div>
+                    <CardTitle className="text-lg text-[#3C4166]">Resume Upgrade Suggestions</CardTitle>
+                    <CardDescription className="text-[#6B6F8E]">
+                      Before vs after improvements
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
 
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#E87BF1]/20 to-[#C9B6E4]/20">
-                  <FileText className="h-5 w-5 text-[#E87BF1]" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Resume Upgrade Suggestions</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">
-                    Before vs after improvements
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
+              <CardContent className="space-y-3">
+                {analysisData.resumeSuggestions.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-6 text-sm text-[#6B6F8E]">
+                    No resume suggestions returned yet.
+                  </div>
+                ) : (
+                  analysisData.resumeSuggestions.map((suggestion, index) => (
+                    <div
+                      key={`${suggestion.title}-${index}`}
+                      className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-xs",
+                              suggestion.type === "reframe"
+                                ? "bg-[#7ED7F7]/20 text-[#4FA7A7]"
+                                : "bg-[#C8F5DF] text-[#4FA7A7]"
+                            )}
+                          >
+                            {suggestion.type === "reframe" ? "Reframe" : "Add"}
+                          </span>
+                          <h4 className="font-medium text-[#3C4166]">{suggestion.title}</h4>
+                        </div>
 
-            <CardContent className="space-y-3">
-              {analysisData.resumeSuggestions.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-6 text-sm text-[#6B6F8E]">
-                  No resume suggestions returned yet.
-                </div>
-              ) : (
-                analysisData.resumeSuggestions.map((suggestion, index) => (
-                  <div
-                    key={`${suggestion.title}-${index}`}
-                    className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2">
                         <span
                           className={cn(
                             "rounded-full px-2 py-0.5 text-xs",
-                            suggestion.type === "reframe"
-                              ? "bg-[#7ED7F7]/20 text-[#4FA7A7]"
-                              : "bg-[#C8F5DF] text-[#4FA7A7]"
+                            getImpactBadgeClass(suggestion.impact)
                           )}
                         >
-                          {suggestion.type === "reframe" ? "Reframe" : "Add"}
+                          {suggestion.impact} Impact
                         </span>
-                        <h4 className="font-medium text-[#3C4166]">{suggestion.title}</h4>
                       </div>
 
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs",
-                          getImpactBadgeClass(suggestion.impact)
-                        )}
-                      >
-                        {suggestion.impact} Impact
-                      </span>
+                      {suggestion.current && (
+                        <p className="mb-2 text-sm text-[#6B6F8E]">
+                          <span className="font-medium text-[#3C4166]">Current:</span>{" "}
+                          {suggestion.current}
+                        </p>
+                      )}
+
+                      <div className="rounded-xl bg-[#4FA7A7]/8 p-3">
+                        <p className="mb-2 text-sm text-[#3C4166]">
+                          <span className="font-medium">Improved:</span> {suggestion.improved}
+                        </p>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopySuggestion(suggestion.improved, index)}
+                          className="border-[#4FA7A7]/20 text-[#4FA7A7] hover:bg-[#4FA7A7]/10"
+                        >
+                          <Copy className="mr-2 h-3.5 w-3.5" />
+                          {savedSuggestions.includes(index) ? "Copied" : "Copy Suggestion"}
+                        </Button>
+                      </div>
                     </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-                    {suggestion.current && (
-                      <p className="mb-2 text-sm text-[#6B6F8E]">
-                        <span className="font-medium text-[#FF8FA3]">Before:</span>{" "}
-                        <span className="line-through">{suggestion.current}</span>
-                      </p>
-                    )}
-
-                    <p className="mb-3 text-sm text-[#6B6F8E]">
-                      <span className="font-medium text-[#4FA7A7]">After:</span>{" "}
-                      <span className="font-medium text-[#3C4166]">
-                        {suggestion.improved}
-                      </span>
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() => handleCopySuggestion(suggestion.improved, index)}
-                      className="inline-flex items-center gap-2 text-xs text-[#6B6F8E] transition-colors hover:text-[#3C4166]"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                      {savedSuggestions.includes(index) ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
+          <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+            <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7ED7F7]/20 to-[#4FA7A7]/20">
-                  <Clock className="h-5 w-5 text-[#4FA7A7]" />
+                  <Zap className="h-5 w-5 text-[#4FA7A7]" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Next Steps Strategy</CardTitle>
+                  <CardTitle className="text-lg text-[#3C4166]">Next Steps</CardTitle>
                   <CardDescription className="text-[#6B6F8E]">
-                    Prioritized actions to improve your match
+                    Prioritized actions to close the gap
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="grid gap-4 md:grid-cols-3">
               {nextStepBuckets.map((bucket) => {
                 const items = analysisData.nextSteps[bucket.key]
 
                 return (
-                  <div key={bucket.key}>
+                  <div key={bucket.key} className="rounded-xl bg-[#F6F1E7]/40 p-4">
                     <div className="mb-3 flex items-center gap-2">
-                      <span className={cn("h-3 w-3 rounded-full", bucket.dotClass)} />
-                      <h4 className="font-medium text-[#3C4166]">{bucket.label}</h4>
-                      <span className="text-xs text-[#6B6F8E]">{bucket.sublabel}</span>
+                      <div className={cn("h-2 w-2 rounded-full", bucket.dotClass)} />
+                      <div>
+                        <p className="text-sm font-medium text-[#3C4166]">{bucket.label}</p>
+                        <p className="text-xs text-[#6B6F8E]">{bucket.sublabel}</p>
+                      </div>
                     </div>
 
-                    {items.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-4 text-sm text-[#6B6F8E]">
-                        No actions returned in this bucket.
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {items.map((item, index) => (
-                          <div
-                            key={`${item.action}-${index}`}
-                            className={cn(
-                              "flex items-center justify-between gap-4 rounded-xl px-4 py-3",
-                              bucket.key === "now" && "bg-[#C8F5DF]/30",
-                              bucket.key === "soon" && "bg-[#F3E3F9]/60",
-                              bucket.key === "later" && "bg-[#E8F6FB]/80"
-                            )}
-                          >
-                            <p className="text-sm text-[#3C4166]">{item.action}</p>
-                            <div className="flex items-center gap-3 text-xs text-[#6B6F8E]">
-                              <span className="inline-flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {item.effort}
+                    <div className="space-y-3">
+                      {items.length === 0 ? (
+                        <p className="text-sm text-[#6B6F8E]">No steps returned.</p>
+                      ) : (
+                        items.map((step, index) => (
+                          <div key={`${bucket.key}-${index}`} className="rounded-lg bg-white/80 p-3">
+                            <p className="mb-2 text-sm font-medium text-[#3C4166]">{step.action}</p>
+                            <div className="flex flex-wrap gap-2">
+                              <span className="rounded-full bg-[#3C4166]/10 px-2 py-0.5 text-xs text-[#6B6F8E]">
+                                Effort: {step.effort}
                               </span>
                               <span
                                 className={cn(
-                                  "rounded-full px-2 py-0.5",
-                                  getImpactBadgeClass(item.impact)
+                                  "rounded-full px-2 py-0.5 text-xs",
+                                  getImpactBadgeClass(step.impact)
                                 )}
                               >
-                                {item.impact}
+                                Impact: {step.impact}
                               </span>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      )}
+                    </div>
                   </div>
                 )
               })}
@@ -1103,14 +1087,14 @@ export default function AnalysisResultsPage() {
           </Card>
 
           {analysisData.rawNotes && (
-            <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+            <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C9B6E4]/20 to-[#7ED7F7]/20">
-                    <Lightbulb className="h-5 w-5 text-[#6B6F8E]" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C9B6E4]/20 to-[#F7C7D4]/20">
+                    <BookOpen className="h-5 w-5 text-[#6B6F8E]" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg text-[#3C4166]">Extra Notes</CardTitle>
+                    <CardTitle className="text-lg text-[#3C4166]">Additional Notes</CardTitle>
                     <CardDescription className="text-[#6B6F8E]">
                       Additional analysis context
                     </CardDescription>
@@ -1126,9 +1110,9 @@ export default function AnalysisResultsPage() {
           )}
         </div>
 
-        <div className="space-y-6">
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
+        <div className="space-y-5">
+          <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7ED7F7]/20 to-[#4FA7A7]/20">
@@ -1190,168 +1174,188 @@ export default function AnalysisResultsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#E87BF1]/20 to-[#C9B6E4]/20">
-                  <Award className="h-5 w-5 text-[#E87BF1]" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Certifications</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">
-                    Recommended credentials
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-3">
-              {analysisData.certifications.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-4 text-sm text-[#6B6F8E]">
-                  No certification suggestions returned.
-                </div>
-              ) : (
-                analysisData.certifications.map((cert, index) => (
-                  <div
-                    key={`${cert.name}-${index}`}
-                    className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
-                  >
-                    <div className="mb-1 flex items-start justify-between gap-3">
-                      <h4 className="font-medium text-[#3C4166]">{cert.name}</h4>
-                      {cert.free && (
-                        <span className="rounded-full bg-[#C8F5DF] px-2 py-0.5 text-xs text-[#4FA7A7]">
-                          Free
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-[#6B6F8E]">{cert.provider}</p>
-                    <div className="mt-2 flex items-center gap-2 text-xs text-[#6B6F8E]">
-                      <span>{cert.time}</span>
-                      <span className="rounded-full bg-[#C9B6E4]/20 px-2 py-0.5">
-                        {cert.relevance} relevance
-                      </span>
-                    </div>
+          <div ref={certificationsRef}>
+            <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#E87BF1]/20 to-[#C9B6E4]/20">
+                    <Award className="h-5 w-5 text-[#E87BF1]" />
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                  <div>
+                    <CardTitle className="text-lg text-[#3C4166]">Certifications</CardTitle>
+                    <CardDescription className="text-[#6B6F8E]">
+                      Recommended credentials
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
 
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF8FA3]/20 to-[#F7C7D4]/20">
-                  <BookOpen className="h-5 w-5 text-[#FF8FA3]" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Project Ideas</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">
-                    Portfolio suggestions
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-3">
-              {analysisData.projectIdeas.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-4 text-sm text-[#6B6F8E]">
-                  No project ideas returned.
-                </div>
-              ) : (
-                analysisData.projectIdeas.map((project, index) => (
-                  <div
-                    key={`${project.title}-${index}`}
-                    className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
-                  >
-                    <div className="mb-2 flex items-start justify-between gap-3">
-                      <h4 className="font-medium text-[#3C4166]">{project.title}</h4>
-                      <div className="flex gap-2">
-                        <span className="rounded-full bg-[#7ED7F7]/20 px-2 py-0.5 text-xs text-[#4FA7A7]">
-                          {project.complexity}
+              <CardContent className="space-y-3">
+                {analysisData.certifications.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-4 text-sm text-[#6B6F8E]">
+                    No certification suggestions returned.
+                  </div>
+                ) : (
+                  analysisData.certifications.map((cert, index) => (
+                    <div
+                      key={`${cert.name}-${index}`}
+                      className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
+                    >
+                      <div className="mb-1 flex items-start justify-between gap-3">
+                        <h4 className="font-medium text-[#3C4166]">{cert.name}</h4>
+                        {cert.free && (
+                          <span className="rounded-full bg-[#C8F5DF] px-2 py-0.5 text-xs text-[#4FA7A7]">
+                            Free
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-[#6B6F8E]">{cert.provider}</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-[#3C4166]/10 px-2 py-0.5 text-xs text-[#6B6F8E]">
+                          {cert.time}
                         </span>
-                        <span className="rounded-full bg-[#E87BF1]/20 px-2 py-0.5 text-xs text-[#E87BF1]">
-                          {project.signal} signal
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-xs",
+                            getImpactBadgeClass(cert.relevance)
+                          )}
+                        >
+                          {cert.relevance} Relevance
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-[#6B6F8E]">{project.description}</p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7ED7F7]/20 to-[#C9B6E4]/20">
-                  <Layers className="h-5 w-5 text-[#6B6F8E]" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Market Signals</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">
-                    Industry trends and expectations
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6B6F8E]">
-                  Recurring Themes
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {analysisData.marketSignals.themes.length === 0 ? (
-                    <span className="text-sm text-[#6B6F8E]">No themes returned.</span>
-                  ) : (
-                    analysisData.marketSignals.themes.map((theme) => (
-                      <span
-                        key={theme}
-                        className="rounded-full bg-[#E8F6FB] px-2.5 py-1 text-xs text-[#4FA7A7]"
-                      >
-                        {theme}
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6B6F8E]">
-                  Common Expectations
-                </p>
-                {analysisData.marketSignals.expectations.length === 0 ? (
-                  <span className="text-sm text-[#6B6F8E]">No expectations returned.</span>
-                ) : (
-                  <ul className="space-y-2 text-sm text-[#6B6F8E]">
-                    {analysisData.marketSignals.expectations.map((expectation) => (
-                      <li key={expectation} className="flex gap-2">
-                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[#4FA7A7]" />
-                        <span>{expectation}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  ))
                 )}
-              </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              <div className="border-t border-[#3C4166]/10 pt-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6B6F8E]">Salary Range</span>
-                  <span className="font-medium text-[#3C4166]">
-                    {analysisData.marketSignals.salaryRange}
-                  </span>
+          <div ref={projectIdeasRef}>
+            <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#F7C7D4]/30 to-[#E87BF1]/20">
+                    <Layers className="h-5 w-5 text-[#E87BF1]" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-[#3C4166]">Project Ideas</CardTitle>
+                    <CardDescription className="text-[#6B6F8E]">
+                      High-signal portfolio ideas
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+                {analysisData.projectIdeas.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-[#3C4166]/10 p-4 text-sm text-[#6B6F8E]">
+                    No project ideas returned.
+                  </div>
+                ) : (
+                  analysisData.projectIdeas.map((project, index) => (
+                    <div
+                      key={`${project.title}-${index}`}
+                      className="rounded-xl border border-[#3C4166]/10 bg-[#F6F1E7]/35 p-4"
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-3">
+                        <h4 className="font-medium text-[#3C4166]">{project.title}</h4>
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-xs",
+                            getImpactBadgeClass(project.signal)
+                          )}
+                        >
+                          {project.signal} Signal
+                        </span>
+                      </div>
+
+                      <p className="mb-2 text-sm text-[#6B6F8E]">{project.description}</p>
+
+                      <span className="rounded-full bg-[#3C4166]/10 px-2 py-0.5 text-xs text-[#6B6F8E]">
+                        {project.complexity} Complexity
+                      </span>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div ref={marketSignalsRef}>
+            <Card className="border-[#3C4166]/10 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C8F5DF]/20 to-[#7ED7F7]/20">
+                    <TrendingUp className="h-5 w-5 text-[#4FA7A7]" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-[#3C4166]">Market Signals</CardTitle>
+                    <CardDescription className="text-[#6B6F8E]">
+                      What the role is emphasizing
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6B6F8E]">
+                    Themes
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {analysisData.marketSignals.themes.length === 0 ? (
+                      <span className="text-sm text-[#6B6F8E]">No themes returned.</span>
+                    ) : (
+                      analysisData.marketSignals.themes.map((theme) => (
+                        <span
+                          key={theme}
+                          className="rounded-full bg-[#7ED7F7]/15 px-2.5 py-1 text-xs text-[#4FA7A7]"
+                        >
+                          {theme}
+                        </span>
+                      ))
+                    )}
+                  </div>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-[#6B6F8E]">Demand</span>
-                  <span className="rounded-full bg-[#C8F5DF] px-2 py-0.5 text-xs text-[#4FA7A7]">
-                    {analysisData.marketSignals.demandLevel}
-                  </span>
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6B6F8E]">
+                    Expectations
+                  </p>
+                  <div className="space-y-2">
+                    {analysisData.marketSignals.expectations.length === 0 ? (
+                      <span className="text-sm text-[#6B6F8E]">No expectations returned.</span>
+                    ) : (
+                      analysisData.marketSignals.expectations.map((expectation, index) => (
+                        <div
+                          key={`${expectation}-${index}`}
+                          className="rounded-xl bg-[#F6F1E7]/40 p-3 text-sm text-[#6B6F8E]"
+                        >
+                          {expectation}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-[#F6F1E7]/40 p-3">
+                    <p className="mb-1 text-xs text-[#6B6F8E]">Salary Range</p>
+                    <p className="text-sm font-medium text-[#3C4166]">
+                      {analysisData.marketSignals.salaryRange}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-[#F6F1E7]/40 p-3">
+                    <p className="mb-1 text-xs text-[#6B6F8E]">Demand Level</p>
+                    <p className="text-sm font-medium text-[#3C4166]">
+                      {analysisData.marketSignals.demandLevel}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

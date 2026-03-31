@@ -15,6 +15,29 @@ function cleanText(text: string) {
     .trim()
 }
 
+async function extractResumeText(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase()
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  if (extension === "pdf") {
+    const pdfParse = (await import("pdf-parse")).default
+    const parsed = await pdfParse(buffer)
+    return cleanText(parsed.text || "")
+  }
+
+  if (extension === "docx") {
+    const mammoth = await import("mammoth")
+    const parsed = await mammoth.extractRawText({ buffer })
+    return cleanText(parsed.value || "")
+  }
+
+  if (extension === "txt") {
+    return cleanText(buffer.toString("utf8"))
+  }
+
+  throw new Error("Unsupported resume format. Please upload PDF, DOCX, or TXT.")
+}
+
 function parseJsonFromModel(text: string) {
   const trimmed = text.trim()
 
@@ -168,6 +191,13 @@ function normalizeResumeLabResult(raw: any, fallbackRole: string, fallbackCompan
   }
 }
 
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    message: "resume-lab route is live",
+  })
+}
+
 export async function POST(request: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -177,12 +207,38 @@ export async function POST(request: Request) {
       )
     }
 
-    const body = await request.json()
+    const formData = await request.formData()
 
-    const selectedAnalysis = body?.selectedAnalysis ?? {}
-    const resumeText = cleanText(String(body?.resumeText || ""))
-    const bulletToRegenerate = body?.bulletToRegenerate ?? null
-    const existingBullets = Array.isArray(body?.existingBullets) ? body.existingBullets : []
+    const selectedAnalysisRaw = String(formData.get("selectedAnalysis") || "{}")
+    const bulletToRegenerateRaw = String(formData.get("bulletToRegenerate") || "")
+    const existingBulletsRaw = String(formData.get("existingBullets") || "[]")
+    const resumeText = cleanText(String(formData.get("resumeText") || ""))
+
+    let selectedAnalysis: any = {}
+    let bulletToRegenerate: any = null
+    let existingBullets: any[] = []
+
+    try {
+      selectedAnalysis = JSON.parse(selectedAnalysisRaw)
+    } catch {}
+
+    try {
+      bulletToRegenerate = bulletToRegenerateRaw ? JSON.parse(bulletToRegenerateRaw) : null
+    } catch {}
+
+    try {
+      existingBullets = JSON.parse(existingBulletsRaw)
+      if (!Array.isArray(existingBullets)) existingBullets = []
+    } catch {
+      existingBullets = []
+    }
+
+    const resumeFile = formData.get("resumeFile")
+    let normalizedResumeText = resumeText
+
+    if (resumeFile instanceof File && resumeFile.size > 0) {
+      normalizedResumeText = await extractResumeText(resumeFile)
+    }
 
     const role = toNonEmptyString(
       selectedAnalysis?.role ?? selectedAnalysis?.analysis?.role,
@@ -203,9 +259,9 @@ export async function POST(request: Request) {
     const resumeSuggestions = JSON.stringify(selectedAnalysis?.analysis?.resumeSuggestions ?? [], null, 2)
     const marketSignals = JSON.stringify(selectedAnalysis?.analysis?.marketSignals ?? {}, null, 2)
 
-    if (!resumeText) {
+    if (!normalizedResumeText) {
       return NextResponse.json(
-        { error: "Missing saved resume text." },
+        { error: "Missing saved or uploaded resume text." },
         { status: 400 }
       )
     }
@@ -266,7 +322,7 @@ Market signals:
 ${marketSignals}
 
 Current resume:
-${resumeText}
+${normalizedResumeText}
 
 Existing bullets:
 ${JSON.stringify(existingBullets, null, 2)}
@@ -302,6 +358,7 @@ ${JSON.stringify(bulletToRegenerate, null, 2)}
 
       return NextResponse.json({
         bullet: normalizeBullet(parsed.bullet, Number(bulletToRegenerate?.id) || 1),
+        resumeWordCount: normalizedResumeText.split(/\s+/).filter(Boolean).length,
       })
     }
 
@@ -379,7 +436,7 @@ Market signals:
 ${marketSignals}
 
 User resume:
-${resumeText}
+${normalizedResumeText}
 `.trim()
 
     const completion = await client.chat.completions.create({
@@ -409,7 +466,10 @@ ${resumeText}
 
     const normalized = normalizeResumeLabResult(parsed, role, company)
 
-    return NextResponse.json(normalized)
+    return NextResponse.json({
+      ...normalized,
+      resumeWordCount: normalizedResumeText.split(/\s+/).filter(Boolean).length,
+    })
   } catch (error) {
     console.error("Resume Lab API error:", error)
 

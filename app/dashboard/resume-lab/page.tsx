@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -19,6 +19,8 @@ import {
   Download,
   Settings2,
   Lightbulb,
+  Upload,
+  File,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -74,6 +76,7 @@ type ResumeLabResponse = {
   framingSuggestions: FramingSuggestion[]
   optimizedResumeText: string
   summary: string
+  resumeWordCount?: number
 }
 
 function clampPercent(value: unknown, fallback = 0) {
@@ -92,13 +95,6 @@ function asString(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
     : fallback
-}
-
-function asStringArray(value: unknown) {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    .map((item) => item.trim())
 }
 
 function getCachedKey(analysisId: string) {
@@ -129,6 +125,8 @@ const defaultFramingSuggestions: FramingSuggestion[] = [
 ]
 
 export default function ResumeLabPage() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
   const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysis[]>([])
   const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
 
@@ -141,6 +139,10 @@ export default function ResumeLabPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [regeneratingBulletId, setRegeneratingBulletId] = useState<number | null>(null)
   const [error, setError] = useState("")
+
+  const [uploadedResumeFile, setUploadedResumeFile] = useState<File | null>(null)
+  const [uploadedResumeLabel, setUploadedResumeLabel] = useState("")
+  const [uploadedResumeWordCount, setUploadedResumeWordCount] = useState<number | null>(null)
 
   useEffect(() => {
     try {
@@ -157,7 +159,10 @@ export default function ResumeLabPage() {
               item?.confidenceLevel ?? item?.analysis?.confidenceLevel,
               "Medium"
             ),
-            atsScore: clampPercent(item?.atsScore ?? item?.analysis?.atsScore ?? item?.analysis?.atsKeywords?.score, 0),
+            atsScore: clampPercent(
+              item?.atsScore ?? item?.analysis?.atsScore ?? item?.analysis?.atsKeywords?.score,
+              0
+            ),
             matchSummary: asString(item?.matchSummary ?? item?.analysis?.matchSummary, ""),
             savedAt: asString(item?.savedAt, new Date().toISOString()),
             analysis: item?.analysis ?? item,
@@ -233,14 +238,43 @@ export default function ResumeLabPage() {
     }
   }
 
+  const handleResumeUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const extension = file.name.split(".").pop()?.toLowerCase() || ""
+    if (!["pdf", "docx", "txt"].includes(extension)) {
+      setError("Please upload a PDF, DOCX, or TXT file.")
+      return
+    }
+
+    setError("")
+    setUploadedResumeFile(file)
+    setUploadedResumeLabel(file.name)
+    setUploadedResumeWordCount(null)
+  }
+
+  const buildGenerateFormData = () => {
+    const formData = new FormData()
+    formData.append("selectedAnalysis", JSON.stringify(selectedAnalysis))
+
+    if (uploadedResumeFile) {
+      formData.append("resumeFile", uploadedResumeFile)
+    } else if (savedProfile?.resumeText) {
+      formData.append("resumeText", savedProfile.resumeText)
+    }
+
+    return formData
+  }
+
   const handleGenerate = async () => {
     if (!selectedAnalysis) {
       setError("Please select a saved role first.")
       return
     }
 
-    if (!savedProfile?.resumeText) {
-      setError("No saved resume profile found. Run an analysis first so Kestrel can save your resume text.")
+    if (!savedProfile?.resumeText && !uploadedResumeFile) {
+      setError("No saved resume profile found. Upload a resume or run an analysis first so Kestrel can save your resume text.")
       return
     }
 
@@ -250,13 +284,7 @@ export default function ResumeLabPage() {
     try {
       const response = await fetch("/api/resume-lab", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          selectedAnalysis,
-          resumeText: savedProfile.resumeText,
-        }),
+        body: buildGenerateFormData(),
       })
 
       const data = await response.json()
@@ -267,6 +295,7 @@ export default function ResumeLabPage() {
 
       setLabResult(data)
       setExpandedBullets(data.bullets.slice(0, 2).map((bullet: ResumeLabBullet) => bullet.id))
+      setUploadedResumeWordCount(typeof data?.resumeWordCount === "number" ? data.resumeWordCount : null)
       window.localStorage.setItem(getCachedKey(selectedAnalysis.id), JSON.stringify(data))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate Resume Lab suggestions.")
@@ -276,29 +305,28 @@ export default function ResumeLabPage() {
   }
 
   const handleRegenerateBullet = async (bullet: ResumeLabBullet) => {
-    if (!selectedAnalysis || !savedProfile?.resumeText || !labResult) return
+    if (!selectedAnalysis || (!savedProfile?.resumeText && !uploadedResumeFile) || !labResult) return
 
     setError("")
     setRegeneratingBulletId(bullet.id)
 
     try {
+      const formData = buildGenerateFormData()
+      formData.append(
+        "bulletToRegenerate",
+        JSON.stringify({
+          id: bullet.id,
+          original: bullet.original,
+          section: bullet.section,
+          company: bullet.company,
+          role: bullet.role,
+        })
+      )
+      formData.append("existingBullets", JSON.stringify(labResult.bullets))
+
       const response = await fetch("/api/resume-lab", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          selectedAnalysis,
-          resumeText: savedProfile.resumeText,
-          bulletToRegenerate: {
-            id: bullet.id,
-            original: bullet.original,
-            section: bullet.section,
-            company: bullet.company,
-            role: bullet.role,
-          },
-          existingBullets: labResult.bullets,
-        }),
+        body: formData,
       })
 
       const data = await response.json()
@@ -337,13 +365,21 @@ export default function ResumeLabPage() {
     URL.revokeObjectURL(url)
   }
 
-  const bulletsToImprove = labResult?.bullets.filter((bullet) => bullet.status === "needs-improvement").length ?? 0
-  const missingKeywords = labResult?.keywordSuggestions.filter((item) => item.status === "missing").length ?? 0
+  const bulletsToImprove =
+    labResult?.bullets.filter((bullet) => bullet.status === "needs-improvement").length ?? 0
+  const missingKeywords =
+    labResult?.keywordSuggestions.filter((item) => item.status === "missing").length ?? 0
   const highImpactChanges =
     labResult?.bullets.filter((bullet) => bullet.impact === "critical" || bullet.impact === "high").length ?? 0
 
   const currentAtsScore = labResult?.currentAtsScore ?? selectedAnalysis?.atsScore ?? 0
   const potentialScore = labResult?.potentialScore ?? Math.max(currentAtsScore, 0)
+
+  const resumeSourceText = uploadedResumeFile
+    ? `Uploaded resume: ${uploadedResumeLabel}${uploadedResumeWordCount ? ` (${uploadedResumeWordCount} words)` : ""}`
+    : savedProfile?.resumeText
+      ? `Saved resume loaded (${savedProfile.resumeText.split(/\s+/).filter(Boolean).length} words)`
+      : "No saved resume profile found yet."
 
   return (
     <div className="pb-20 lg:pb-0">
@@ -370,7 +406,7 @@ export default function ResumeLabPage() {
 
           <Button
             onClick={handleGenerate}
-            disabled={isGenerating || !selectedAnalysis || !savedProfile?.resumeText}
+            disabled={isGenerating || !selectedAnalysis || (!savedProfile?.resumeText && !uploadedResumeFile)}
             className="bg-[#4FA7A7] text-white hover:bg-[#4FA7A7]/90"
           >
             <Sparkles className="mr-2 h-4 w-4" />
@@ -407,11 +443,37 @@ export default function ResumeLabPage() {
               <div className="mb-1 text-sm font-medium text-[#3C4166]">
                 Resume source
               </div>
-              <p className="text-sm text-[#6B6F8E]">
-                {savedProfile?.resumeText
-                  ? `Saved resume loaded (${savedProfile.resumeText.split(/\s+/).filter(Boolean).length} words)`
-                  : "No saved resume profile found yet."}
+              <p className="mb-3 text-sm text-[#6B6F8E]">
+                {resumeSourceText}
               </p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.txt"
+                onChange={handleResumeUpload}
+                className="hidden"
+              />
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="border-[#3C4166]/15 text-[#3C4166]"
+              >
+                {uploadedResumeFile ? (
+                  <>
+                    <File className="mr-2 h-4 w-4" />
+                    Replace Resume
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Resume
+                  </>
+                )}
+              </Button>
             </div>
           </div>
 
@@ -512,7 +574,7 @@ export default function ResumeLabPage() {
             </p>
             <Button
               onClick={handleGenerate}
-              disabled={isGenerating || !selectedAnalysis || !savedProfile?.resumeText}
+              disabled={isGenerating || !selectedAnalysis || (!savedProfile?.resumeText && !uploadedResumeFile)}
               className="bg-[#4FA7A7] text-white hover:bg-[#4FA7A7]/90"
             >
               <Sparkles className="mr-2 h-4 w-4" />
