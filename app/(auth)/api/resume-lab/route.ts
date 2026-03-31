@@ -4,10 +4,6 @@ import OpenAI from "openai"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 function cleanText(text: string) {
   return text
     .replace(/\r/g, "")
@@ -207,6 +203,10 @@ export async function POST(request: Request) {
         { status: 500 }
       )
     }
+
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
 
     const formData = await request.formData()
 

@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server"
 import OpenAI from "openai"
 
+export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 function cleanText(text: string) {
   return text
@@ -496,6 +493,10 @@ export async function POST(request: Request) {
       )
     }
 
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+
     const formData = await request.formData()
 
     const jobDescription = cleanText(String(formData.get("jobDescription") || ""))
@@ -685,7 +686,7 @@ ${normalizedResumeText}
     `.trim()
 
     const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5",
+      model: process.env.OPENAI_MODEL || "gpt-4o",
       input: [
         {
           role: "system",
