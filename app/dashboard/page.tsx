@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   ArrowRight,
-  Map,
+  Map as MapIcon,
   Target,
   TrendingUp,
   Sparkles,
@@ -394,8 +394,7 @@ export default function DashboardPage() {
               </Link>
               <Link href="/dashboard/roadmap">
                 <div className="p-4 rounded-xl bg-gradient-to-br from-[#C8F5DF]/30 to-[#4FA7A7]/10 border border-[#C8F5DF]/40 hover:border-[#C8F5DF]/60 transition-all cursor-pointer group">
-                  <Map className="h-5 w-5 text-[#4FA7A7] mb-2 group-hover:scale-110 transition-transform" />
-                  <span className="text-sm font-medium text-[#3C4166]">Continue Roadmap</span>
+                <MapIcon className="h-5 w-5 text-[#4FA7A7] mb-2 group-hover:scale-110 transition-transform" />                  <span className="text-sm font-medium text-[#3C4166]">Continue Roadmap</span>
                 </div>
               </Link>
             </div>
