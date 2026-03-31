@@ -263,7 +263,10 @@ function getProfileStrength(
   return Math.min(score, 100)
 }
 
-function getRoadmapSummary(savedAnalysis: SavedAnalysisItem | null) {
+function getRoadmapSummary(
+  savedAnalysis: SavedAnalysisItem | null,
+  savedProfile: SavedProfile | null
+) {
   if (!savedAnalysis?.analysis) {
     return {
       totalProgress: 0,
@@ -393,8 +396,10 @@ export default function ProfilePage() {
   const [demoUser, setDemoUser] = useState<DemoUser | null>(null)
   const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysisItem[]>([])
   const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
+  const [hasMounted, setHasMounted] = useState(false)
 
   useEffect(() => {
+    setHasMounted(true)
     setDemoUser(getDemoUser())
 
     try {
@@ -423,7 +428,15 @@ export default function ProfilePage() {
   }, [])
 
   const latestAnalysis = savedAnalyses[0] ?? null
-  const roadmapSummary = getRoadmapSummary(latestAnalysis)
+  const roadmapSummary = hasMounted
+  ? getRoadmapSummary(latestAnalysis, savedProfile)
+  : {
+      totalProgress: 0,
+      completedMilestones: 0,
+      totalMilestones: 0,
+      milestoneItems: [],
+      recentProgress: [],
+    }
 
   const liveProfileData = useMemo(() => {
     const displayName = getDisplayName(demoUser)
