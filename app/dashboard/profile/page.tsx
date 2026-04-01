@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Mail,
@@ -81,6 +83,8 @@ type SavedAnalysisItem = {
 type SavedProfile = {
   resumeText: string
   updatedAt: string
+  fileName?: string
+  fileSize?: number
 }
 
 type ResumeVersion = {
@@ -102,6 +106,16 @@ type RecentProgressItem = {
   date: string
   type: "achievement" | "learning" | "analysis" | "profile"
 }
+
+type EditableProfile = {
+  headline: string
+  location: string
+  linkedin: string
+  preferredIndustries: string[]
+}
+
+const EDITABLE_PROFILE_KEY = "kestrel_editable_profile"
+const SAVED_PROFILE_KEY = "kestrel_saved_profile"
 
 function clampPercent(value: unknown, fallback = 0) {
   const num =
@@ -153,6 +167,12 @@ function formatTargetDate(value: string) {
   } catch {
     return "Soon"
   }
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function getRoadmapStorageKey(analysisId: string) {
@@ -233,14 +253,16 @@ function getTopSkills(latestAnalysis: SavedAnalysisItem | null) {
 function buildResumeVersions(savedProfile: SavedProfile | null): ResumeVersion[] {
   if (!savedProfile?.resumeText) return []
 
-  const sizeKb = Math.max(1, Math.round(new Blob([savedProfile.resumeText]).size / 1024))
+  const size = typeof savedProfile.fileSize === "number"
+    ? formatFileSize(savedProfile.fileSize)
+    : formatFileSize(new Blob([savedProfile.resumeText]).size)
 
   return [
     {
-      name: "Current_Resume.txt",
+      name: savedProfile.fileName || "Current_Resume.txt",
       uploadedAt: formatRelativeDate(savedProfile.updatedAt),
       current: true,
-      size: `${sizeKb} KB`,
+      size,
     },
   ]
 }
@@ -249,7 +271,8 @@ function getProfileStrength(
   demoUser: DemoUser | null,
   savedProfile: SavedProfile | null,
   savedAnalyses: SavedAnalysisItem[],
-  latestAnalysis: SavedAnalysisItem | null
+  latestAnalysis: SavedAnalysisItem | null,
+  editableProfile: EditableProfile | null
 ) {
   let score = 20
 
@@ -259,6 +282,9 @@ function getProfileStrength(
   if (savedProfile?.resumeText) score += 20
   if (savedAnalyses.length > 0) score += 15
   if (latestAnalysis?.analysis?.nextSteps) score += 10
+  if (editableProfile?.headline?.trim()) score += 5
+  if (editableProfile?.location?.trim()) score += 3
+  if (editableProfile?.linkedin?.trim()) score += 2
 
   return Math.min(score, 100)
 }
@@ -396,7 +422,12 @@ export default function ProfilePage() {
   const [demoUser, setDemoUser] = useState<DemoUser | null>(null)
   const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysisItem[]>([])
   const [savedProfile, setSavedProfile] = useState<SavedProfile | null>(null)
+  const [editableProfile, setEditableProfile] = useState<EditableProfile | null>(null)
+  const [draftProfile, setDraftProfile] = useState<EditableProfile | null>(null)
+  const [newIndustry, setNewIndustry] = useState("")
   const [hasMounted, setHasMounted] = useState(false)
+  const [uploadError, setUploadError] = useState("")
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     setHasMounted(true)
@@ -412,15 +443,59 @@ export default function ProfilePage() {
 
       setSavedAnalyses(normalizedAnalyses)
 
-      const rawSavedProfile = window.localStorage.getItem("kestrel_saved_profile")
+      const rawSavedProfile = window.localStorage.getItem(SAVED_PROFILE_KEY)
+      let parsedSavedProfile: SavedProfile | null = null
+
       if (rawSavedProfile) {
         const parsedProfile = JSON.parse(rawSavedProfile)
         if (parsedProfile?.resumeText) {
-          setSavedProfile({
+          parsedSavedProfile = {
             resumeText: asString(parsedProfile.resumeText, ""),
             updatedAt: asString(parsedProfile.updatedAt, new Date().toISOString()),
-          })
+            fileName: asString(parsedProfile.fileName, ""),
+            fileSize:
+              typeof parsedProfile.fileSize === "number" ? parsedProfile.fileSize : undefined,
+          }
+          setSavedProfile(parsedSavedProfile)
         }
+      }
+
+      const rawEditableProfile = window.localStorage.getItem(EDITABLE_PROFILE_KEY)
+      const latestAnalysis = normalizedAnalyses[0] ?? null
+
+      const defaultEditableProfile: EditableProfile = {
+        headline:
+          latestAnalysis?.role
+            ? `Actively exploring ${latestAnalysis.role}${latestAnalysis.company !== "Unknown" ? ` roles like ${latestAnalysis.company}` : ""}`
+            : "Build your career profile by saving analyses and a resume",
+        location: "",
+        linkedin: "",
+        preferredIndustries: inferIndustries(normalizedAnalyses),
+      }
+
+      if (rawEditableProfile) {
+        try {
+          const parsedEditable = JSON.parse(rawEditableProfile)
+          const hydratedEditable: EditableProfile = {
+            headline: asString(parsedEditable?.headline, defaultEditableProfile.headline),
+            location: asString(parsedEditable?.location, ""),
+            linkedin: asString(parsedEditable?.linkedin, ""),
+            preferredIndustries: Array.isArray(parsedEditable?.preferredIndustries)
+              ? parsedEditable.preferredIndustries
+                  .map((item: unknown) => asString(item, ""))
+                  .filter(Boolean)
+              : defaultEditableProfile.preferredIndustries,
+          }
+
+          setEditableProfile(hydratedEditable)
+          setDraftProfile(hydratedEditable)
+        } catch {
+          setEditableProfile(defaultEditableProfile)
+          setDraftProfile(defaultEditableProfile)
+        }
+      } else {
+        setEditableProfile(defaultEditableProfile)
+        setDraftProfile(defaultEditableProfile)
       }
     } catch (error) {
       console.error("Failed to load profile data:", error)
@@ -429,14 +504,128 @@ export default function ProfilePage() {
 
   const latestAnalysis = savedAnalyses[0] ?? null
   const roadmapSummary = hasMounted
-  ? getRoadmapSummary(latestAnalysis, savedProfile)
-  : {
-      totalProgress: 0,
-      completedMilestones: 0,
-      totalMilestones: 0,
-      milestoneItems: [],
-      recentProgress: [],
+    ? getRoadmapSummary(latestAnalysis, savedProfile)
+    : {
+        totalProgress: 0,
+        completedMilestones: 0,
+        totalMilestones: 0,
+        milestoneItems: [] as MilestoneItem[],
+        recentProgress: [] as RecentProgressItem[],
+      }
+
+  const handleEditToggle = () => {
+    if (!isEditing) {
+      setDraftProfile(
+        editableProfile ?? {
+          headline: "",
+          location: "",
+          linkedin: "",
+          preferredIndustries: [],
+        }
+      )
+      setNewIndustry("")
+      setIsEditing(true)
+      return
     }
+
+    if (!draftProfile) {
+      setIsEditing(false)
+      return
+    }
+
+    const cleanedProfile: EditableProfile = {
+      headline: draftProfile.headline.trim(),
+      location: draftProfile.location.trim(),
+      linkedin: draftProfile.linkedin.trim(),
+      preferredIndustries: draftProfile.preferredIndustries
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 6),
+    }
+
+    setEditableProfile(cleanedProfile)
+    window.localStorage.setItem(EDITABLE_PROFILE_KEY, JSON.stringify(cleanedProfile))
+    setIsEditing(false)
+  }
+
+  const handleAddIndustry = () => {
+    if (!draftProfile) return
+    const cleaned = newIndustry.trim()
+    if (!cleaned) return
+    if (draftProfile.preferredIndustries.includes(cleaned)) {
+      setNewIndustry("")
+      return
+    }
+
+    setDraftProfile({
+      ...draftProfile,
+      preferredIndustries: [...draftProfile.preferredIndustries, cleaned].slice(0, 6),
+    })
+    setNewIndustry("")
+  }
+
+  const handleRemoveIndustry = (industry: string) => {
+    if (!draftProfile) return
+    setDraftProfile({
+      ...draftProfile,
+      preferredIndustries: draftProfile.preferredIndustries.filter((item) => item !== industry),
+    })
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const extension = file.name.split(".").pop()?.toLowerCase() || ""
+
+    if (extension !== "txt") {
+      setUploadError("Profile upload currently supports .txt resumes directly on this page.")
+      event.target.value = ""
+      return
+    }
+
+    try {
+      const resumeText = await file.text()
+      if (!resumeText.trim()) {
+        setUploadError("That file looks empty.")
+        event.target.value = ""
+        return
+      }
+
+      const nextSavedProfile: SavedProfile = {
+        resumeText: resumeText.trim(),
+        updatedAt: new Date().toISOString(),
+        fileName: file.name,
+        fileSize: file.size,
+      }
+
+      window.localStorage.setItem(SAVED_PROFILE_KEY, JSON.stringify(nextSavedProfile))
+      setSavedProfile(nextSavedProfile)
+      setUploadError("")
+      event.target.value = ""
+    } catch {
+      setUploadError("Could not read that file.")
+      event.target.value = ""
+    }
+  }
+
+  const handleDownloadResume = () => {
+    if (!savedProfile?.resumeText) return
+
+    const blob = new Blob([savedProfile.resumeText], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = savedProfile.fileName || "Current_Resume.txt"
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+  }
 
   const liveProfileData = useMemo(() => {
     const displayName = getDisplayName(demoUser)
@@ -446,21 +635,31 @@ export default function ProfilePage() {
     return {
       name: displayName,
       headline:
-        latestAnalysis?.role
+        editableProfile?.headline ||
+        (latestAnalysis?.role
           ? `Actively exploring ${latestAnalysis.role}${latestAnalysis.company !== "Unknown" ? ` roles like ${latestAnalysis.company}` : ""}`
-          : "Build your career profile by saving analyses and a resume",
+          : "Build your career profile by saving analyses and a resume"),
       email: demoUser?.email ?? "No email saved yet",
-      location: "Not set",
-      linkedin: "Add your link in a later pass",
+      location: editableProfile?.location?.trim() ? editableProfile.location : "Not set",
+      linkedin: editableProfile?.linkedin?.trim() ? editableProfile.linkedin : "Add your link in a later pass",
       avatar: initials,
-      profileStrength: getProfileStrength(demoUser, savedProfile, savedAnalyses, latestAnalysis),
+      profileStrength: getProfileStrength(
+        demoUser,
+        savedProfile,
+        savedAnalyses,
+        latestAnalysis,
+        editableProfile
+      ),
 
       targetRoles: savedAnalyses.slice(0, 3).map((item, index) => ({
         role: item.role,
         priority: inferRolePriority(index),
       })),
 
-      preferredIndustries: inferIndustries(savedAnalyses),
+      preferredIndustries:
+        editableProfile?.preferredIndustries?.length
+          ? editableProfile.preferredIndustries
+          : inferIndustries(savedAnalyses),
 
       skills: getTopSkills(latestAnalysis),
 
@@ -484,10 +683,18 @@ export default function ProfilePage() {
       milestones: roadmapSummary.milestoneItems,
       recentProgress: roadmapSummary.recentProgress,
     }
-  }, [demoUser, latestAnalysis, roadmapSummary, savedAnalyses, savedProfile])
+  }, [demoUser, editableProfile, latestAnalysis, roadmapSummary, savedAnalyses, savedProfile])
 
   return (
     <div className="pb-20 lg:pb-0">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,text/plain"
+        className="hidden"
+        onChange={handleResumeUpload}
+      />
+
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-[#3C4166]">
@@ -498,7 +705,7 @@ export default function ProfilePage() {
           </p>
         </div>
         <Button
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={handleEditToggle}
           variant={isEditing ? "default" : "outline"}
           className={
             isEditing
@@ -509,7 +716,7 @@ export default function ProfilePage() {
           {isEditing ? (
             <>
               <CheckCircle2 className="h-4 w-4 mr-2" />
-              Done
+              Save Changes
             </>
           ) : (
             <>
@@ -534,7 +741,18 @@ export default function ProfilePage() {
 
                 <div className="flex-1 pb-2">
                   <h2 className="text-xl font-semibold text-[#3C4166]">{liveProfileData.name}</h2>
-                  <p className="text-[#6B6F8E]">{liveProfileData.headline}</p>
+                  {isEditing && draftProfile ? (
+                    <Textarea
+                      value={draftProfile.headline}
+                      onChange={(e) =>
+                        setDraftProfile({ ...draftProfile, headline: e.target.value })
+                      }
+                      className="mt-2 min-h-20 border-[#3C4166]/10 text-[#6B6F8E] focus-visible:ring-[#4FA7A7]/20"
+                      placeholder="Add a concise professional headline"
+                    />
+                  ) : (
+                    <p className="text-[#6B6F8E]">{liveProfileData.headline}</p>
+                  )}
                 </div>
 
                 <div className="sm:text-right pb-2">
@@ -558,13 +776,41 @@ export default function ProfilePage() {
                   <Mail className="h-4 w-4 text-[#6B6F8E]" />
                   <span className="text-sm text-[#3C4166]">{liveProfileData.email}</span>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F6F1E7]/50">
-                  <MapPin className="h-4 w-4 text-[#6B6F8E]" />
-                  <span className="text-sm text-[#3C4166]">{liveProfileData.location}</span>
+
+                <div className="p-3 rounded-xl bg-[#F6F1E7]/50">
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-4 w-4 text-[#6B6F8E] shrink-0" />
+                    {isEditing && draftProfile ? (
+                      <Input
+                        value={draftProfile.location}
+                        onChange={(e) =>
+                          setDraftProfile({ ...draftProfile, location: e.target.value })
+                        }
+                        placeholder="Add location"
+                        className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                      />
+                    ) : (
+                      <span className="text-sm text-[#3C4166]">{liveProfileData.location}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F6F1E7]/50">
-                  <LinkIcon className="h-4 w-4 text-[#6B6F8E]" />
-                  <span className="text-sm text-[#4FA7A7]">{liveProfileData.linkedin}</span>
+
+                <div className="p-3 rounded-xl bg-[#F6F1E7]/50">
+                  <div className="flex items-center gap-3">
+                    <LinkIcon className="h-4 w-4 text-[#6B6F8E] shrink-0" />
+                    {isEditing && draftProfile ? (
+                      <Input
+                        value={draftProfile.linkedin}
+                        onChange={(e) =>
+                          setDraftProfile({ ...draftProfile, linkedin: e.target.value })
+                        }
+                        placeholder="Add LinkedIn URL"
+                        className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 text-[#4FA7A7]"
+                      />
+                    ) : (
+                      <span className="text-sm text-[#4FA7A7]">{liveProfileData.linkedin}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -572,15 +818,13 @@ export default function ProfilePage() {
 
           <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#4FA7A7]/20 to-[#7ED7F7]/20 flex items-center justify-center">
-                    <Target className="h-5 w-5 text-[#4FA7A7]" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg text-[#3C4166]">Target Roles</CardTitle>
-                    <CardDescription className="text-[#6B6F8E]">Roles you&apos;re actively pursuing</CardDescription>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#4FA7A7]/20 to-[#7ED7F7]/20 flex items-center justify-center">
+                  <Target className="h-5 w-5 text-[#4FA7A7]" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-[#3C4166]">Target Roles</CardTitle>
+                  <CardDescription className="text-[#6B6F8E]">Roles you&apos;re actively pursuing</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -604,11 +848,72 @@ export default function ProfilePage() {
                     >
                       {role.priority === "primary" && <Sparkles className="h-3.5 w-3.5" />}
                       {role.role}
-                      {isEditing && (
-                        <button className="ml-1 hover:text-[#FF8FA3]">
+                    </span>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#E87BF1]/20 to-[#C9B6E4]/20 flex items-center justify-center">
+                    <Briefcase className="h-5 w-5 text-[#E87BF1]" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-[#3C4166]">Preferred Industries</CardTitle>
+                    <CardDescription className="text-[#6B6F8E]">Sectors you&apos;re interested in</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isEditing && draftProfile ? (
+                <>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {draftProfile.preferredIndustries.map((industry) => (
+                      <span
+                        key={industry}
+                        className="px-3 py-1.5 rounded-full bg-[#F6F1E7] text-[#3C4166] text-sm border border-[#3C4166]/10 flex items-center gap-2"
+                      >
+                        {industry}
+                        <button
+                          onClick={() => handleRemoveIndustry(industry)}
+                          className="hover:text-[#FF8FA3]"
+                        >
                           <X className="h-3.5 w-3.5" />
                         </button>
-                      )}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newIndustry}
+                      onChange={(e) => setNewIndustry(e.target.value)}
+                      placeholder="Add an industry"
+                      className="border-[#3C4166]/10"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAddIndustry}
+                      className="border-[#4FA7A7] text-[#4FA7A7]"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {liveProfileData.preferredIndustries.map((industry) => (
+                    <span
+                      key={industry}
+                      className="px-3 py-1.5 rounded-full bg-[#F6F1E7] text-[#3C4166] text-sm border border-[#3C4166]/10"
+                    >
+                      {industry}
                     </span>
                   ))}
                 </div>
@@ -619,40 +924,12 @@ export default function ProfilePage() {
           <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#E87BF1]/20 to-[#C9B6E4]/20 flex items-center justify-center">
-                  <Briefcase className="h-5 w-5 text-[#E87BF1]" />
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#7ED7F7]/30 to-[#4FA7A7]/20 flex items-center justify-center">
+                  <Award className="h-5 w-5 text-[#4FA7A7]" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg text-[#3C4166]">Preferred Industries</CardTitle>
-                  <CardDescription className="text-[#6B6F8E]">Sectors you&apos;re interested in</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {liveProfileData.preferredIndustries.map((industry) => (
-                  <span
-                    key={industry}
-                    className="px-3 py-1.5 rounded-full bg-[#F6F1E7] text-[#3C4166] text-sm border border-[#3C4166]/10"
-                  >
-                    {industry}
-                  </span>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border-[#3C4166]/10">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#7ED7F7]/30 to-[#4FA7A7]/20 flex items-center justify-center">
-                    <Award className="h-5 w-5 text-[#4FA7A7]" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg text-[#3C4166]">Top Skills</CardTitle>
-                    <CardDescription className="text-[#6B6F8E]">Your professional skills</CardDescription>
-                  </div>
+                  <CardTitle className="text-lg text-[#3C4166]">Top Skills</CardTitle>
+                  <CardDescription className="text-[#6B6F8E]">Your professional skills</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -710,19 +987,28 @@ export default function ProfilePage() {
                     <CardDescription className="text-[#6B6F8E]">Your uploaded resumes</CardDescription>
                   </div>
                 </div>
-                <Link href="/dashboard/resume-lab">
-                  <Button variant="outline" size="sm" className="border-[#4FA7A7] text-[#4FA7A7]">
-                    <Upload className="h-4 w-4 mr-1" />
-                    Upload New
-                  </Button>
-                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-[#4FA7A7] text-[#4FA7A7]"
+                  onClick={handleUploadClick}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Upload New
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
+              {uploadError ? (
+                <div className="rounded-xl border border-[#FF8FA3]/30 bg-[#FF8FA3]/10 px-4 py-3 text-sm text-[#FF8FA3]">
+                  {uploadError}
+                </div>
+              ) : null}
+
               {liveProfileData.resumeVersions.length === 0 ? (
                 <EmptyProfileBlock
                   title="No resume saved yet."
-                  description="Open Resume Lab or run an analysis to create your first saved resume profile."
+                  description="Upload a .txt resume on this page to create your first saved resume profile."
                 />
               ) : (
                 liveProfileData.resumeVersions.map((resume) => (
@@ -757,11 +1043,14 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Link href="/dashboard/resume-lab">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-[#6B6F8E]">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-[#6B6F8E]"
+                        onClick={handleDownloadResume}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))
