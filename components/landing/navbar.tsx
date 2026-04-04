@@ -16,14 +16,14 @@ export function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center">
-            <Image
-              src="/kestrel-logo.png"
-              alt="Kestrel"
-              width={170}
-              height={44}
-              priority
-              className="h-8 w-auto object-contain"
-            />
+          <Image
+  src="/kestrel-logo.png"
+  alt="Kestrel"
+  width={220}
+  height={60}
+  priority
+  className="h-10 w-auto object-contain"
+/>
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
