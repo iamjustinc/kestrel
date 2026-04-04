@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -14,21 +15,15 @@ export function Navbar() {
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-[#3C4166]/5 bg-[#F6F1E7]/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#4FA7A7] to-[#7ED7F7]">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                className="h-5 w-5 text-white"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <span className="text-xl font-semibold tracking-tight text-[#3C4166]">Kestrel</span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/kestrel-logo.png"
+              alt="Kestrel"
+              width={170}
+              height={44}
+              priority
+              className="h-8 w-auto object-contain"
+            />
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
@@ -62,7 +57,10 @@ export function Navbar() {
             </Link>
           </div>
 
-          <button className="p-2 text-[#3C4166] md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button
+            className="p-2 text-[#3C4166] md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
