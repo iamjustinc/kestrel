@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -36,23 +37,14 @@ export function DashboardSidebar() {
           <div className="absolute top-0 right-0 h-full w-px bg-gradient-to-b from-[#C9B6E4]/20 via-[#F7C7D4]/20 to-[#7ED7F7]/20" />
 
           <div className="flex h-16 shrink-0 items-center">
-            <Link href="/" className="group flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#4FA7A7] to-[#7ED7F7] shadow-md shadow-[#4FA7A7]/20 transition-all group-hover:shadow-lg group-hover:shadow-[#4FA7A7]/30">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="h-5 w-5 text-white"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                  <path d="M2 17l10 5 10-5" />
-                  <path d="M2 12l10 5 10-5" />
-                </svg>
-              </div>
-              <span className="text-xl font-semibold tracking-tight text-[#3C4166]">
-                Kestrel
-              </span>
+            <Link href="/" className="flex items-center">
+            <Image
+  src="/kestrel-logo.png"
+  alt="Kestrel"
+  width={220}
+  height={60}
+  className="h-10 w-auto object-contain"
+/>
             </Link>
           </div>
 
